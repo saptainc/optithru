@@ -1,18 +1,26 @@
-# Throughput OS — Week 2: TOC Calculation Engine
+# Throughput OS — Week 3: Simulation Engine, Product Details, Shopify Sync & Demo Prep
 
 ## What this project is
 Beauty e-commerce profitability platform applying Theory of Constraints / Throughput Accounting.
 Target customer: Shankara Naturals (premium Ayurvedic skincare, ~$3M revenue, 48+ SKUs on Shopify).
 100% of Shankara's net profits go to humanitarian causes — every throughput improvement increases humanitarian impact.
 
-## What was built in Week 1 (already working)
+## What was built in Weeks 1–2 (already working)
 - Next.js 16.2 frontend with App Router, TypeScript, Tailwind, shadcn/ui, Recharts
-- FastAPI Python backend with TOC calculation engine (4 passing tests)
+- FastAPI Python backend with TOC calculation engine (7+ passing tests)
 - Remote Supabase at https://supabase.1in3in5.org (PostgreSQL + Auth + RLS)
 - Login/signup auth flow (client-side Supabase auth, not server actions)
-- Dashboard with 4 KPI cards + throughput bar chart
-- Products page with real Shankara catalog (89 Shopify imports), editable COGS
+- Dashboard with 4 KPI cards + throughput bar chart + recent orders
+- Products page with real Shankara catalog (89 Shopify imports), editable COGS, Capital Traps tab
+- T/CU Rankings page with constraint-aware product ranking + scatter chart
+- Marketing Channels page with T/CU per channel + budget reallocation card
+- Buffer Management with Green/Yellow/Red zone status board
+- Constraint Management UI (add/activate/delete constraints)
+- Traditional vs. TOC split comparison view with rank inversions highlighted
+- Throughput Accounting P&L with waterfall chart + key ratios (ROI, Productivity, Investment Turns)
 - CSV import wizard (4 entity types: products, variants, orders, marketing spend)
+- FastAPI backend with 5 RPC-proxying endpoints + TOC engine methods + 7 tests
+- PostgreSQL RPC functions: fn_system_kpis, fn_product_throughput_summary, fn_tcu_rankings, fn_channel_tcu, fn_calculate_buffers, fn_dollar_days
 - start-dev.sh launching both frontend + backend
 
 ## Tech Stack
@@ -28,7 +36,19 @@ Target customer: Shankara Naturals (premium Ayurvedic skincare, ~$3M revenue, 48
 │   ├── next.config.js           # MUST be .js (NOT .ts) — has allowedDevOrigins + rewrites
 │   ├── src/
 │   │   ├── app/dashboard/       # All dashboard routes (NOT in route group)
-│   │   ├── components/          # React components
+│   │   │   ├── page.tsx         # Dashboard with KPIs
+│   │   │   ├── products/        # Product list + [variantId] detail
+│   │   │   ├── rankings/        # T/CU rankings
+│   │   │   ├── channels/        # Marketing channel analysis
+│   │   │   ├── buffers/         # Buffer status board
+│   │   │   ├── constraints/     # Constraint management
+│   │   │   ├── compare/         # Traditional vs. TOC comparison
+│   │   │   ├── financials/      # Throughput P&L + waterfall
+│   │   │   ├── simulate/        # What-If Simulator (Week 3)
+│   │   │   ├── demo/            # Demo scenarios page (Week 3)
+│   │   │   ├── import/          # CSV import wizard
+│   │   │   └── settings/        # Shopify connection + theme toggle
+│   │   ├── components/          # React components by feature
 │   │   ├── lib/                 # Supabase clients, format utils, API client
 │   │   └── middleware.ts        # Auth middleware (allows /api/* routes through)
 │   └── package.json
@@ -36,13 +56,12 @@ Target customer: Shankara Naturals (premium Ayurvedic skincare, ~$3M revenue, 48
 │   ├── app/
 │   │   ├── main.py              # FastAPI app with CORS
 │   │   ├── config.py            # pydantic-settings
-│   │   ├── routers/             # health.py, calculations.py
-│   │   ├── services/            # toc_engine.py
+│   │   ├── routers/             # health.py, calculations.py, shopify.py, reports.py
+│   │   ├── services/            # toc_engine.py, shopify_sync.py
 │   │   └── schemas/             # toc.py (Pydantic models)
 │   ├── tests/
 │   └── pyproject.toml
 ├── supabase/migrations/         # SQL files (applied via Studio SQL Editor)
-├── scripts/                     # TypeScript utility scripts
 ├── start-dev.sh                 # Starts both frontend + backend
 └── CLAUDE.md                    # This file
 ```
@@ -83,163 +102,149 @@ uv run pytest -v                              # Run tests
 ./start-dev.sh                 # Start both services
 ```
 
-## CRITICAL: Lessons from Week 1 (DO NOT REPEAT THESE MISTAKES)
+## CRITICAL: Lessons from Weeks 1–2 (DO NOT REPEAT)
 
 ### 1. next.config.js MUST be .js, not .ts
-Next.js 16.2 requires `next.config.js` with `module.exports`. Never create next.config.ts or next.config.mjs.
+Next.js 16.2 requires `next.config.js` with `module.exports`. Never create next.config.ts.
 
 ### 2. allowedDevOrigins needs ALL hostname variations
 ```js
-allowedDevOrigins: [
-  'http://10.1.34.200:3000',
-  'http://10.1.34.200',
-  '10.1.34.200',
-  'http://localhost:3000',
-  'http://localhost',
-],
+allowedDevOrigins: ['http://10.1.34.200:3000','http://10.1.34.200','10.1.34.200','http://localhost:3000','http://localhost'],
 ```
-Without all 5, client-side JavaScript silently fails (onClick handlers don't fire).
 
-### 3. Dashboard routes are at /dashboard/, NOT in a route group
-The directory is `src/app/dashboard/` — NOT `src/app/(dashboard)/`. Route groups caused URL mapping issues.
+### 3. Dashboard routes at /dashboard/, NOT in a route group
+Directory is `src/app/dashboard/` — NOT `src/app/(dashboard)/`.
 
 ### 4. Auth uses client-side Supabase, NOT server actions
-Server actions with `form action={handleSubmit}` don't work in Next.js 16.2 + Turbopack. All auth forms use:
-```tsx
-const supabase = createClient()  // browser client
-const { error } = await supabase.auth.signInWithPassword({ email, password })
-```
+All auth forms use `createClient()` from `lib/supabase/client`.
 
 ### 5. Middleware must allow /api/* routes through
-Without this, the Next.js proxy to FastAPI gets redirected to /login:
-```ts
-const isApiRoute = request.nextUrl.pathname.startsWith('/api/')
-// Add && !isApiRoute to the redirect condition
-```
+Without this, the Next.js proxy to FastAPI gets redirected to /login.
 
-### 6. useEffect + onValidated callback = infinite loop
-Never put a parent callback in useEffect dependencies. Use useRef(hasRun) guard:
-```tsx
-const hasRun = useRef(false)
-useEffect(() => {
-  if (hasRun.current) return
-  hasRun.current = true
-  // ... do work, call onValidated
-}, [csvData, mappings]) // NO onValidated here
-```
+### 6. useEffect + parent callback = infinite loop
+Use `useRef(hasRun)` guard. Never put parent callbacks in useEffect deps.
 
 ### 7. Clean .next cache after config changes
 ```bash
 pkill -f "next dev" 2>/dev/null; rm -rf .next; npm run dev
 ```
 
-### 8. Product variants import needs FK resolution
-The CSV import for product_variants must resolve product_name → product_id before inserting.
+### 8. React keys must use variant_id, not product_name
+Product names can duplicate (seed + Shopify imports). Always use UUID for keys.
 
-### 9. No root package.json
-The root ~/throughput-os/ must NOT have a package.json — it confuses Turbopack module resolution.
+### 9. FastAPI health endpoint needs dual routes
+`@router.get("/healthz")` and `@router.get("/api/v1/healthz")`.
 
-### 10. FastAPI health endpoint needs dual routes
-```python
-@router.get("/healthz")
-@router.get("/api/v1/healthz")
-async def health_check():
-```
+### 10. No root package.json in ~/throughput-os/
 
-## Week 2: What to Build
+## Week 3: What to Build (Cards 46–57)
 
-Execute these cards IN ORDER. Each card has full code — create the files exactly as specified.
+Execute these cards IN ORDER. This is the **MVP gate** — end of Week 3 produces a demo-ready product.
 
-### Card 35: Fix Week 1 issues (SKIP if all working)
-Verify: npx next build passes, login works, dashboard shows data, COGS editing works with toast.
+### Card 46: Fix Week 2 issues and verify all pages
+Smoke test all Week 2 features. Fix TypeScript errors, missing components, RPC mismatches. 13-point checklist. (2h)
 
-### Card 36: PostgreSQL RPC functions
-1. Apply `supabase/migrations/07-rpc-functions.sql` via Supabase Studio SQL Editor
-2. Creates fn_product_throughput_summary() and fn_system_kpis()
-3. Update dashboard page.tsx to use RPC calls instead of JS aggregation
-4. Verify: Dashboard KPIs show non-zero values
+### Card 47: TOC metric snapshots for trend tracking
+1. Apply `supabase/migrations/12-toc-snapshots.sql` — creates fn_capture_snapshot() and fn_snapshot_history()
+2. Create `src/components/dashboard/throughput-trend-chart.tsx` — AreaChart with T and NP trend lines
+3. Add "Capture Snapshot" button to dashboard + trend chart below KPI cards
+4. Seed 30 days of backdated snapshots for demo
+Done when: Dashboard shows 30-day trend chart, snapshot button works. (3h)
 
-### Card 37: Constraint management UI
-1. Create `src/app/dashboard/constraints/page.tsx`
-2. Create `src/components/constraints/constraint-manager.tsx`
-3. Add "Constraints" with Target icon to sidebar
-4. Verify: Can add/activate/delete constraints at /dashboard/constraints
+### Card 48: Interactive What-If Simulator (THE DEMO CENTERPIECE)
+1. Apply `supabase/migrations/13-what-if.sql` — creates fn_what_if_price_change()
+2. Replace simulate/page.tsx with server component fetching baseline KPIs + products
+3. Create `src/components/simulate/what-if-simulator.tsx` — 4 scenario tabs:
+   - Price Change (slider -30% to +30%)
+   - Budget Reallocation (shift X% between channels)
+   - SKU Discontinuation (multi-select, show freed capital vs. throughput loss)
+   - Constraint Change (adjust capacity ±50%)
+4. Create `src/components/simulate/scenario-panel.tsx` — reusable before/after display with large ΔT
+5. Each scenario: local state for client-side math, "Save Scenario" button inserts to simulations table
+Done when: All 4 tabs work with real-time projections, save works. (6h)
 
-### Card 38: T/CU rankings page (THE KEY FEATURE)
-1. Apply `supabase/migrations/08-tcu-rankings.sql` via Studio
-2. Create `src/app/dashboard/rankings/page.tsx`
-3. Create `src/components/rankings/tcu-rankings-table.tsx`
-4. Create `src/components/rankings/tcu-scatter-chart.tsx`
-5. Add "T/CU Rankings" with TrendingUp icon to sidebar
-6. Verify: Products ranked by T/CU, constraint dropdown re-ranks
+### Card 49: Per-product detail page
+1. Create `src/app/dashboard/products/[variantId]/page.tsx` — dynamic route
+2. Create `src/components/products/product-detail.tsx` — 6 sections: header, throughput waterfall, sales velocity, buffer status, capital efficiency, auto-generated recommendations
+3. Make product names clickable (Link) in product-table, tcu-rankings-table, capital-trap-table
+Done when: Click product → detail page with breakdown + recommendations. (4h)
 
-### Card 39: Marketing channel T/CU analysis
-1. Apply `supabase/migrations/09-channel-tcu.sql` via Studio
-2. Replace `src/app/dashboard/channels/page.tsx`
-3. Create `src/components/channels/channel-analysis.tsx`
-4. Create `src/components/channels/budget-reallocation-card.tsx`
-5. Verify: Bar chart with email at top, meta_ads at bottom
+### Card 50: Shopify Admin API live sync
+1. Create `backend/app/services/shopify_sync.py` — ShopifySyncService with sync_products() and sync_orders()
+2. Create `backend/app/routers/shopify.py` — POST /api/v1/shopify/sync endpoint
+3. Apply unique indexes for upsert: idx_orders_external, idx_variants_external
+4. Create `src/components/settings/shopify-connect.tsx` — connection card with domain/token fields + "Sync Now" button
+5. Replace settings/page.tsx with real settings page
+6. Register shopify router in main.py, add httpx to dependencies
+Done when: Settings page → Sync Now → products/orders appear in dashboard. (5h)
 
-### Card 40: Buffer management engine
-1. Apply `supabase/migrations/10-buffer-management.sql` via Studio
-2. Replace `src/app/dashboard/buffers/page.tsx`
-3. Create `src/components/buffers/buffer-status-board.tsx`
-4. Verify: Buffer cards with Green/Yellow/Red zones
+### Card 51: Product mix optimizer
+1. Apply `supabase/migrations/14-product-mix-optimizer.sql` — creates fn_optimal_product_mix()
+2. Create `src/components/simulate/product-mix-optimizer.tsx` — current vs. recommended pie charts + detail table
+3. Add as 5th tab on What-If Simulator
+Done when: Product Mix tab shows two pie charts + throughput improvement summary. (4h)
 
-### Card 41: Capital trap identification (IDD/TDD)
-1. Apply `supabase/migrations/11-dollar-days.sql` via Studio
-2. Create `src/components/products/capital-trap-table.tsx`
-3. Add "Capital Traps" tab to products page
-4. Verify: Products sorted by IDD/TDD ratio, traps flagged red
+### Card 52: Subscription impact calculator
+1. Create `src/components/simulate/subscription-calculator.tsx` — 4 sliders (conversion rate, discount, duration, interval), client-side LTV calculations, bar chart + cumulative throughput curve, top 5 subscription candidates
+2. Add as 6th tab on What-If Simulator
+Done when: Subscription tab shows 8.7× LTV multiplier insight. (3h)
 
-### Card 42: Traditional vs. TOC split comparison
-1. Create `src/app/dashboard/compare/page.tsx`
-2. Create `src/components/compare/split-comparison.tsx`
-3. Add "Compare" with ArrowLeftRight icon to sidebar
-4. Verify: Side-by-side panels with rank inversions highlighted
+### Card 53: Shankara brand theming
+1. Add Shankara earth-tone CSS variables in globals.css under [data-theme="shankara"]
+2. Add Shankara logo to sidebar + branded login page
+3. Add theme toggle in Settings (Default vs. Shankara)
+Done when: Warm browns/golds/cream applied, logo visible, login branded. (3h)
 
-### Card 43: Throughput Accounting P&L
-1. Create `src/app/dashboard/financials/page.tsx`
-2. Create `src/components/financials/throughput-waterfall.tsx`
-3. Create `src/components/financials/throughput-pnl.tsx`
-4. Add "Financials" with DollarSign icon to sidebar
-5. Verify: Waterfall chart + P&L with ROI, Productivity, Investment Turns
+### Card 54: Pre-build 5 "aha moment" demo scenarios
+1. Create `src/app/dashboard/demo/page.tsx` — lists 5 scenarios as cards with "Run Scenario" buttons
+2. Insert 5 pre-built simulations into simulations table
+3. Add "Demo" to sidebar nav
+5 scenarios: Hero product isn't most profitable, Bottom 10 SKUs destroy capital, Email 12-40× better than Meta, 10% subscription transforms economics, Shorter lead time frees 35% buffer cash.
+Done when: Demo page links to pre-loaded scenarios. (4h)
 
-### Card 44: Extend FastAPI backend
-1. Create `app/schemas/toc.py` with Pydantic models
-2. Add methods to `app/services/toc_engine.py`
-3. Add 5 new endpoints to `app/routers/calculations.py`
-4. Add `get_user_org_id` to `app/dependencies.py`
-5. Add 3 new tests
-6. Verify: `uv run pytest -v` passes all tests
+### Card 55: PDF export for Throughput Analysis Report
+1. Add reportlab to backend deps: `uv add reportlab`
+2. Create `backend/app/routers/reports.py` — GET /api/v1/reports/throughput-analysis returns PDF
+3. Add "Export Report" button to dashboard header
+Report sections: Cover page, Executive summary, T/CU rankings, Channel analysis, Recommendations.
+Done when: Button downloads valid multi-page PDF. (4h)
 
-### Card 45: End-to-end verification
-Run the 14-point checklist. Fix issues. Git commit.
+### Card 56: Mobile responsiveness, loading skeletons, error states
+1. Create loading.tsx for every dashboard route (skeleton UI)
+2. Create error.tsx for every dashboard route (friendly error + retry)
+3. Mobile audit at 375px: overflow-x-auto on tables, responsive grids, touch targets
+4. Empty states for pages with no data
+5. Visual consistency pass
+Done when: All pages mobile-friendly, loading/error states present. (4h)
 
-## Sidebar Navigation (final state after Week 2)
-The sidebar should have these items in order:
+### Card 57: Week 3 E2E verification + demo recording + git commit
+24-point checklist. Git commit. Record 3-minute demo video.
+THIS IS THE MVP GATE. (3h)
+
+## Sidebar Navigation (final state after Week 3)
 ```
 Dashboard        → /dashboard           (LayoutDashboard)
 Products         → /dashboard/products  (Package)
-T/CU Rankings    → /dashboard/rankings  (TrendingUp)       ← NEW
+T/CU Rankings    → /dashboard/rankings  (TrendingUp)
 Orders           → /dashboard/orders    (ShoppingCart)
 Channels         → /dashboard/channels  (Megaphone)
 Buffers          → /dashboard/buffers   (BarChart3)
-Constraints      → /dashboard/constraints (Target)          ← NEW
-Compare          → /dashboard/compare   (ArrowLeftRight)    ← NEW
-Financials       → /dashboard/financials (DollarSign)       ← NEW
+Constraints      → /dashboard/constraints (Target)
+Compare          → /dashboard/compare   (ArrowLeftRight)
+Financials       → /dashboard/financials (DollarSign)
 Simulate         → /dashboard/simulate  (FlaskConical)
+Demo             → /dashboard/demo      (Presentation)      ← NEW
 Import           → /dashboard/import    (Upload)
 Settings         → /dashboard/settings  (Settings)
 ```
 
 ## SQL Migrations to Apply (via Supabase Studio SQL Editor)
-These files are in ~/throughput-os/supabase/migrations/ — paste each into Studio and run:
-1. 07-rpc-functions.sql (card 36)
-2. 08-tcu-rankings.sql (card 38)
-3. 09-channel-tcu.sql (card 39)
-4. 10-buffer-management.sql (card 40)
-5. 11-dollar-days.sql (card 41)
+Files in ~/throughput-os/supabase/migrations/ — paste each into Studio and run:
+1. 12-toc-snapshots.sql (card 47)
+2. 13-what-if.sql (card 48)
+3. 14-product-mix-optimizer.sql (card 51)
+4. Unique indexes for Shopify upsert (card 50 — inline in card description)
+5. Snapshot seed data (card 47 — inline in card description)
 
 ## TOC Formulas Reference
 - **Throughput (T)** = Revenue − TVC (COGS + shipping + payment processing)
@@ -251,13 +256,15 @@ These files are in ~/throughput-os/supabase/migrations/ — paste each into Stud
 - **IDD** = inventory_qty × COGS × avg_days_in_stock
 - **TDD** = throughput_per_unit × units_sold
 - **Buffer** = ADU × Lead Time × Variability Factor (1.5)
+- **Subscriber LTV** = (AOV × (1-discount)) × (365/interval) × margin × avg_duration_months/12
 
 ## Code Conventions
-- TypeScript: strict mode, no `any` (use sparingly), named exports
+- TypeScript: strict mode, named exports
 - Python: type hints, async for I/O, Pydantic for validation
-- Server Components by default; 'use client' only when needed
+- Server Components by default; 'use client' only when needed (charts, sliders, state)
 - All data tables scoped by organization_id for multi-tenant RLS
 - Supabase client: use @supabase/ssr with getAll/setAll cookie pattern
 - NEVER use @supabase/auth-helpers-nextjs (deprecated)
 - Config: next.config.js (NOT .ts)
+- React keys: always use variant_id or UUID, never product_name
 - After any config change: `pkill -f "next dev"; rm -rf .next; npm run dev`

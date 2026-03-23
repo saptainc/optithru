@@ -7,17 +7,27 @@ import type { User } from '@supabase/supabase-js'
 import {
   LayoutDashboard, Package, ShoppingCart, Megaphone,
   BarChart3, FlaskConical, Upload, Settings,
-  LogOut, Menu,
+  LogOut, Menu, Target, TrendingUp, ArrowLeftRight, DollarSign, Presentation,
+  Factory, GraduationCap,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { FeedbackButton } from '@/components/layout/feedback-button'
+import { WhatsNewBadge } from '@/components/layout/whats-new-badge'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Products', href: '/dashboard/products', icon: Package },
+  { label: 'T/CU Rankings', href: '/dashboard/rankings', icon: TrendingUp },
   { label: 'Orders', href: '/dashboard/orders', icon: ShoppingCart },
   { label: 'Channels', href: '/dashboard/channels', icon: Megaphone },
   { label: 'Buffers', href: '/dashboard/buffers', icon: BarChart3 },
+  { label: 'Constraints', href: '/dashboard/constraints', icon: Target },
+  { label: 'Production', href: '/dashboard/production', icon: Factory },
+  { label: 'Compare', href: '/dashboard/compare', icon: ArrowLeftRight },
+  { label: 'Financials', href: '/dashboard/financials', icon: DollarSign },
   { label: 'Simulate', href: '/dashboard/simulate', icon: FlaskConical },
+  { label: 'Demo', href: '/dashboard/demo', icon: Presentation },
+  { label: 'Learn', href: '/dashboard/learn', icon: GraduationCap },
   { label: 'Import', href: '/dashboard/import', icon: Upload },
   { label: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
@@ -52,7 +62,9 @@ function NavContent({ pathname, onNavClick }: { pathname: string; onNavClick?: (
           )
         })}
       </nav>
-      <div className="p-3 border-t">
+      <div className="p-3 border-t space-y-1">
+        <WhatsNewBadge />
+        <FeedbackButton />
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 text-muted-foreground"

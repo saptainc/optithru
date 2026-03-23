@@ -1,36 +1,41 @@
-# Week 2 Prompt for Claude Code
+# Week 3 Prompt for Claude Code
 
-Paste this entire block into Claude Code after running `cd ~/throughput-os && claude`:
+Paste this into Claude Code after running `cd ~/throughput-os && claude`:
 
 ---
 
-Read the CLAUDE.md file in this project root. It contains the complete Week 2 build plan for Throughput OS — a TOC/Throughput Accounting SaaS for Shankara Naturals beauty brand.
+Read the CLAUDE.md file in this project root. It contains the complete Week 3 build plan for Throughput OS — a TOC/Throughput Accounting SaaS for Shankara Naturals beauty brand.
 
-Week 1 is complete: Next.js 16.2 frontend, FastAPI backend, remote Supabase, auth, dashboard, products page with editable COGS, and CSV import wizard are all working.
+Weeks 1–2 are complete: Next.js 16.2 frontend, FastAPI backend, remote Supabase, auth, dashboard with KPIs, products with editable COGS, T/CU rankings, channel analysis, buffer management, constraints, traditional vs. TOC comparison, Throughput P&L, and CSV import are all working.
 
-Week 2 adds: PostgreSQL RPC functions, constraint management, T/CU rankings, channel analysis, buffer management, capital trap identification, traditional vs. TOC comparison, and Throughput Accounting P&L.
+Week 3 adds: TOC metric snapshots with trend charts, interactive What-If Simulator (6 scenario tabs), per-product detail pages, Shopify Admin API live sync, product mix optimizer, subscription impact calculator, Shankara brand theming, 5 pre-built demo scenarios, PDF export, and mobile polish.
 
-Execute cards 36-45 in order. For each card:
+**This is the MVP gate — end of Week 3 produces a demo-ready product.**
 
-1. The SQL migration files are already in ~/throughput-os/supabase/migrations/ (files 07 through 11). I will apply them manually via Supabase Studio SQL Editor — just tell me when to apply each one.
+Execute cards 46-57 in order. For each card:
 
-2. Create all frontend files (pages, components) exactly as specified in the Fizzy card descriptions. The card details are embedded in CLAUDE.md.
+1. SQL migration files are already in ~/throughput-os/supabase/migrations/ (files 12 through 15). I will apply them manually via Supabase Studio SQL Editor — tell me when to apply each one.
 
-3. Update sidebar.tsx to add new navigation items (T/CU Rankings, Constraints, Compare, Financials) with the correct icons and order specified in CLAUDE.md.
+2. Create all frontend files (pages, components) as specified in the card descriptions in CLAUDE.md.
 
-4. After each card, run `npx next build` to verify no TypeScript errors.
+3. For the What-If Simulator (card 48), use client-side state for slider-driven calculations. Only call RPC functions for precision when needed. This keeps the simulator responsive without server round-trips.
 
-5. For card 44 (FastAPI), create the Pydantic schemas, engine methods, endpoints, and tests, then run `uv run pytest -v`.
+4. For the Shopify sync (card 50), add httpx to backend dependencies and create the ShopifySyncService class. Register the new shopify router in main.py.
 
-6. For card 45, run the 14-point E2E checklist and fix any issues.
+5. For the PDF export (card 55), add reportlab to backend dependencies and create the reports router.
 
-CRITICAL CONSTRAINTS from Week 1 (do not violate):
+6. After each card, run `npx next build` to verify no TypeScript errors.
+
+7. For card 57 (final), run the 24-point E2E checklist and fix any issues.
+
+CRITICAL CONSTRAINTS from Weeks 1-2 (do not violate):
 - next.config.js MUST be .js not .ts
 - Dashboard routes at /dashboard/ NOT in route group
 - Auth uses client-side Supabase (createClient from lib/supabase/client), NOT server actions
 - useEffect callbacks from parent MUST use useRef guard to prevent infinite loops
-- Middleware at src/middleware.ts allows /api/* routes through without auth redirect
+- React keys MUST use variant_id (UUID), never product_name (duplicates exist)
+- Middleware allows /api/* routes through without auth redirect
 - After any config change: pkill -f "next dev"; rm -rf .next; npm run dev
 - No root package.json in ~/throughput-os/
 
-Start with card 36 (PostgreSQL RPC functions). Tell me when to apply the SQL.
+Start with card 46 (verify Week 2). Tell me when to apply each SQL migration.

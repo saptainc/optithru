@@ -7,26 +7,32 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { CheckCircle, XCircle } from 'lucide-react'
 
-const TABLE_MAP = {
+const TABLE_MAP: Record<string, string> = {
   products: 'products',
   product_variants: 'product_variants',
   orders: 'orders',
   marketing_spend: 'marketing_spend',
 }
 
-const PAGE_MAP = {
+const PAGE_MAP: Record<string, string> = {
   products: '/dashboard/products',
   product_variants: '/dashboard/products',
   orders: '/dashboard/orders',
   marketing_spend: '/dashboard/channels',
 }
 
-export function ImportStep({ validRows, entityType, organizationId, fileName, onReset }) {
+export function ImportStep({ validRows, entityType, organizationId, fileName, onReset }: {
+  validRows: Record<string, unknown>[]
+  entityType: string
+  organizationId: string
+  fileName: string
+  onReset: () => void
+}) {
   const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState('importing')
   const [successCount, setSuccessCount] = useState(0)
   const [errorCount, setErrorCount] = useState(0)
-  const [errorMessages, setErrorMessages] = useState([])
+  const [errorMessages, setErrorMessages] = useState<string[]>([])
   const router = useRouter()
   const supabase = createClient()
 
@@ -34,9 +40,9 @@ export function ImportStep({ validRows, entityType, organizationId, fileName, on
     runImport()
   }, [])
 
-  async function resolveProductNames(rows) {
+  async function resolveProductNames(rows: Record<string, unknown>[]) {
     // Get unique product names from the rows
-    const names = [...new Set(rows.map(r => r.product_name).filter(Boolean))]
+    const names = [...new Set(rows.map(r => r.product_name).filter(Boolean))] as string[]
     if (names.length === 0) return new Map()
 
     // Query products table for matching names
@@ -81,12 +87,12 @@ export function ImportStep({ validRows, entityType, organizationId, fileName, on
       return
     }
 
-    let rows = validRows.map(row => ({
+    let rows: Record<string, unknown>[] = validRows.map(row => ({
       ...row,
       organization_id: organizationId,
     }))
 
-    const errs = []
+    const errs: string[] = []
 
     // Handle FK resolution for product_variants
     if (entityType === 'product_variants') {

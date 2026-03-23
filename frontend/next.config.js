@@ -6,6 +6,9 @@ const nextConfig = {
     '10.1.34.200',
     'http://localhost:3000',
     'http://localhost',
+    'mcp.sapta.com',
+    'http://mcp.sapta.com',
+    'https://mcp.sapta.com',
   ],
   async rewrites() {
     return [

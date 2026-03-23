@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table'
 import { formatCurrency, formatPercent } from '@/lib/format'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 interface ProductRow {
   variant_id: string
@@ -179,7 +180,9 @@ export function ProductTable({ initialData }: { initialData: ProductRow[] }) {
 
                 {/* Product name */}
                 <TableCell>
-                  <div className="font-medium text-sm">{row.product_name}</div>
+                  <Link href={`/dashboard/products/${row.variant_id}`} className="hover:underline text-primary">
+                    <div className="font-medium text-sm">{row.product_name}</div>
+                  </Link>
                   {row.sku && <div className="text-xs text-muted-foreground">{row.sku}</div>}
                 </TableCell>
 

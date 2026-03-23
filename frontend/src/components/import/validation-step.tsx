@@ -5,34 +5,47 @@ import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
+import type { FieldMapping } from '@/lib/import-fields'
 
-export function ValidationStep({ csvData, mappings, entityType, onValidated }) {
-  const [validRows, setValidRows] = useState([])
-  const [errors, setErrors] = useState([])
+interface ValidationError {
+  row: number
+  field: string
+  message: string
+}
+
+export function ValidationStep({ csvData, mappings, entityType, onValidated }: {
+  csvData: Record<string, string>[]
+  mappings: FieldMapping[]
+  entityType: string
+  onValidated: (valid: Record<string, unknown>[], errors: ValidationError[]) => void
+}) {
+  const [validRows, setValidRows] = useState<Record<string, unknown>[]>([])
+  const [errors, setErrors] = useState<ValidationError[]>([])
   const hasRun = useRef(false)
 
   useEffect(() => {
     if (hasRun.current) return
     hasRun.current = true
 
-    const valid = []
-    const errs = []
+    const valid: Record<string, unknown>[] = []
+    const errs: ValidationError[] = []
 
     csvData.forEach((row, i) => {
-      const mapped = {}
+      const mapped: Record<string, unknown> = {}
       let rowValid = true
 
       mappings.forEach(m => {
         if (!m.targetField) return
         const val = row[m.csvColumn]?.trim() || ''
-        mapped[m.targetField] = val
+        mapped[m.targetField!] = val
       })
 
       // Check mapped fields have values
       mappings.filter(m => m.targetField).forEach(m => {
-        const val = mapped[m.targetField]
+        const field = m.targetField!
+        const val = mapped[field]
         if (!val && val !== 0) {
-          errs.push({ row: i + 1, field: m.targetField, message: 'Empty value' })
+          errs.push({ row: i + 1, field, message: 'Empty value' })
           rowValid = false
         }
       })
@@ -41,7 +54,7 @@ export function ValidationStep({ csvData, mappings, entityType, onValidated }) {
       const numberFields = ['price', 'cogs', 'shipping_cost', 'total', 'spend', 'revenue_attributed', 'conversions', 'clicks', 'impressions', 'inventory_quantity']
       for (const key of numberFields) {
         if (mapped[key] !== undefined && mapped[key] !== '') {
-          const num = parseFloat(mapped[key])
+          const num = parseFloat(String(mapped[key]))
           if (isNaN(num)) {
             errs.push({ row: i + 1, field: key, message: `"${mapped[key]}" is not a number` })
             rowValid = false

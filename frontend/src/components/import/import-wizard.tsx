@@ -102,7 +102,7 @@ export function ImportWizard({ organizationId }: { organizationId: string }) {
             csvData={csvData}
             mappings={mappings}
             entityType={entityType}
-            onValidated={(valid, errs) => { setValidRows(valid); setErrors(errs) }}
+            onValidated={(valid: Record<string, unknown>[], errs: { row: number; field: string; message: string }[]) => { setValidRows(valid); setErrors(errs) }}
           />
         )}
         {step === 3 && (

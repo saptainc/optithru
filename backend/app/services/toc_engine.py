@@ -1,5 +1,6 @@
 from typing import Optional
 
+
 class TOCEngine:
     """Core Theory of Constraints calculation engine."""
 
@@ -22,7 +23,7 @@ class TOCEngine:
         constraint_capacity: float,
     ) -> list[dict]:
         """Rank products by Throughput per Constraint Unit (T/CU).
-        
+
         Each product dict must have:
           - name: str
           - throughput: float (T per unit)
@@ -33,7 +34,7 @@ class TOCEngine:
                 p["tcu"] = round(p["throughput"] / p["constraint_units"], 2)
             else:
                 p["tcu"] = float("inf")
-        
+
         ranked = sorted(products, key=lambda x: x["tcu"], reverse=True)
         for i, p in enumerate(ranked):
             p["priority_rank"] = i + 1
@@ -80,4 +81,41 @@ class TOCEngine:
             "projected_oe": round(new_oe, 2),
             "projected_net_profit": round(new_t - new_oe, 2),
             "throughput_delta": round(new_t - base_throughput, 2),
+        }
+
+    @staticmethod
+    def calculate_dollar_days(
+        inventory_qty: int,
+        cogs: float,
+        avg_days_in_stock: float,
+        throughput_per_unit: float,
+        units_sold: int,
+    ) -> dict:
+        """Calculate IDD and TDD for capital trap identification."""
+        idd = round(inventory_qty * cogs * avg_days_in_stock)
+        tdd = round(units_sold * throughput_per_unit)
+        ratio = round(idd / tdd, 1) if tdd > 0 else 999.0
+        return {
+            "idd": idd,
+            "tdd": tdd,
+            "idd_tdd_ratio": ratio,
+            "is_capital_trap": ratio > 5,
+        }
+
+    @staticmethod
+    def calculate_pnl(
+        throughput: float,
+        operating_expense: float,
+        investment: float,
+    ) -> dict:
+        """Calculate Throughput Accounting P&L metrics."""
+        net_profit = throughput - operating_expense
+        roi = round(net_profit / investment, 4) if investment > 0 else 0.0
+        productivity = round(throughput / operating_expense, 4) if operating_expense > 0 else 0.0
+        investment_turns = round(throughput / investment, 4) if investment > 0 else 0.0
+        return {
+            "net_profit": round(net_profit, 2),
+            "roi": roi,
+            "productivity": productivity,
+            "investment_turns": investment_turns,
         }
