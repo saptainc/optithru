@@ -4,7 +4,7 @@ import { PostHogProvider } from "@/components/providers/posthog-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Throughput OS",
+  title: "OptiThru",
   description: "Beauty e-commerce profitability via Theory of Constraints",
 };
 

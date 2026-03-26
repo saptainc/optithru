@@ -2,15 +2,18 @@
 
 import type { User } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
-import { FileDown } from 'lucide-react'
+import { FileDown, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { NotificationBell } from '@/components/layout/notification-bell'
+import { AskAIPanel } from '@/components/layout/ask-ai-panel'
+import { ProfileDropdown } from '@/components/layout/profile-dropdown'
 
 export function Header({ user }: { user: User }) {
   const [exporting, setExporting] = useState(false)
   const [orgId, setOrgId] = useState('')
+  const [aiPanelOpen, setAiPanelOpen] = useState(false)
 
   useEffect(() => {
     async function loadOrg() {
@@ -59,16 +62,39 @@ export function Header({ user }: { user: User }) {
   }
 
   return (
-    <header className="h-14 border-b flex items-center justify-between px-6 bg-background">
-      <h1 className="text-lg font-semibold">Throughput OS</h1>
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="sm" onClick={exportReport} disabled={exporting}>
-          <FileDown className="h-4 w-4 mr-2" />
-          {exporting ? 'Exporting...' : 'Export Report'}
+    <>
+    <header className="h-14 border-b flex items-center justify-between px-6 glass sticky top-0 z-30">
+      <div className="flex items-center gap-3">
+        <h1 className="text-sm font-medium text-muted-foreground">Throughput Accounting</h1>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={exportReport}
+          disabled={exporting}
+          className="text-muted-foreground hover:text-foreground gap-2 cursor-pointer"
+        >
+          <FileDown className="h-4 w-4" />
+          <span className="hidden sm:inline">{exporting ? 'Exporting...' : 'Export'}</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setAiPanelOpen(true)}
+          className="gap-2 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer"
+        >
+          <Sparkles className="h-4 w-4" />
+          <span className="hidden sm:inline">Ask AI</span>
         </Button>
         <NotificationBell organizationId={orgId} />
-        <span className="text-sm text-muted-foreground">{user.email}</span>
+        <ProfileDropdown
+          email={user.email || ''}
+          initials={(user.email || 'U')[0].toUpperCase()}
+        />
       </div>
     </header>
+    <AskAIPanel open={aiPanelOpen} onClose={() => setAiPanelOpen(false)} />
+    </>
   )
 }
