@@ -1,6 +1,6 @@
 ---
-description: Deploy the OptiThru (Throughput OS) application from GitHub as Docker containers on a host with macvlan networking and a dedicated IP address. Includes full stack setup, database migrations, mock data seeding, and verification.
-tags: [deploy, docker, docker-compose, macvlan, infrastructure, setup]
+description: Deploy the OptiThru (Throughput OS) application from GitHub as Docker containers on a host with macvlan networking, a dedicated IP address, and optional HTTPS via Let's Encrypt. Includes full stack setup, database migrations, mock data seeding, and verification.
+tags: [deploy, docker, docker-compose, macvlan, infrastructure, setup, ssl, letsencrypt, https]
 globs: ["**/docker-compose*", "**/Dockerfile*", "**/.env*"]
 ---
 
@@ -11,8 +11,9 @@ Use this skill when asked to deploy, set up, or instantiate OptiThru (Throughput
 - Cloning the repo from GitHub
 - Creating Dockerfiles for frontend and backend
 - Generating a unified docker-compose.yml with macvlan networking
+- HTTPS with automatic Let's Encrypt certificate via Certbot
+- Frontend served at the domain URL (port 80/443)
 - Applying database migrations and seeding mock data
-- Configuring environment variables
 - Verifying all services are running
 
 ## Prerequisites
@@ -22,6 +23,7 @@ The host must have:
 - Network interface for macvlan (e.g., `eth0`, `ens192`)
 - A reserved IP address on the LAN for the app
 - Internet access to pull images and clone the repo
+- **For HTTPS:** A public domain with DNS A record pointing to `APP_IP` (or the host's public IP if behind NAT). Port 80 must be reachable from the internet for Let's Encrypt HTTP-01 challenge.
 
 ## Step 1: Collect Parameters
 
@@ -33,10 +35,13 @@ Before starting, ask the user for these values (provide defaults where shown):
 | `SUBNET` | `10.1.34.0/24` | *(required)* |
 | `GATEWAY` | `10.1.34.1` | *(required)* |
 | `HOST_INTERFACE` | `eth0` | `eth0` |
+| `DOMAIN` | `optithru.example.com` | *(required for HTTPS)* |
+| `LETSENCRYPT_EMAIL` | `admin@example.com` | *(required for HTTPS)* |
 | `GITHUB_REPO` | `https://github.com/saptainc/optithru.git` | `https://github.com/saptainc/optithru.git` |
 | `GITHUB_TOKEN` | `ghp_xxxx` | *(optional, for private repos)* |
 | `DEPLOY_DIR` | `/opt/optithru` | `/opt/optithru` |
-| `DOMAIN` | `optithru.local` | *(optional)* |
+
+**If DOMAIN is not provided**, the app will be served on `http://<APP_IP>:3000` (HTTP only, no SSL). If DOMAIN is provided, the app will be served at `https://<DOMAIN>` with automatic Let's Encrypt certificates.
 
 ## Step 2: Clone the Repository
 
@@ -118,7 +123,9 @@ CMD ["uv", "run", "fastapi", "run", "app/main.py", "--port", "8080", "--host", "
 
 ## Step 5: Generate the Unified docker-compose.yml
 
-Write this to `$DEPLOY_DIR/docker-compose.yml`, substituting the user's parameters:
+Write this to `$DEPLOY_DIR/docker-compose.yml`, substituting the user's parameters.
+
+**If DOMAIN is provided**, the compose file includes a Certbot service and the nginx container listens on ports 80 and 443. **If no DOMAIN**, omit the certbot service and SSL-related nginx config.
 
 ```yaml
 version: "3.8"
@@ -151,11 +158,11 @@ services:
     environment:
       GOTRUE_API_HOST: 0.0.0.0
       GOTRUE_API_PORT: 9999
-      API_EXTERNAL_URL: http://${APP_IP}:8000
+      API_EXTERNAL_URL: ${SUPABASE_EXTERNAL_URL}
       GOTRUE_DB_DRIVER: postgres
       GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
-      GOTRUE_SITE_URL: http://${APP_IP}:3000
-      GOTRUE_URI_ALLOW_LIST: http://${APP_IP}:3000
+      GOTRUE_SITE_URL: ${APP_URL}
+      GOTRUE_URI_ALLOW_LIST: ${APP_URL}
       GOTRUE_DISABLE_SIGNUP: "false"
       GOTRUE_JWT_ADMIN_ROLES: service_role
       GOTRUE_JWT_AUD: authenticated
@@ -223,9 +230,9 @@ services:
     environment:
       STUDIO_DEFAULT_ORGANIZATION: OptiThru
       STUDIO_DEFAULT_PROJECT: Default
-      SUPABASE_PUBLIC_URL: http://${APP_IP}:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_EXTERNAL_URL}
       SUPABASE_URL: http://kong:8000
-      SUPABASE_REST_URL: http://${APP_IP}:8000/rest/v1/
+      SUPABASE_REST_URL: ${SUPABASE_EXTERNAL_URL}/rest/v1/
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
       AUTH_JWT_SECRET: ${JWT_SECRET}
@@ -248,7 +255,7 @@ services:
       SUPABASE_URL: http://kong:8000
       SUPABASE_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
-      FRONTEND_URL: http://${APP_IP}:3000
+      FRONTEND_URL: ${APP_URL}
       ENVIRONMENT: production
 
   # ── Next.js Frontend ──
@@ -257,14 +264,14 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_SUPABASE_URL: http://${APP_IP}:8000
+        NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_EXTERNAL_URL}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}
-        NEXT_PUBLIC_API_URL: http://${APP_IP}:8080
+        NEXT_PUBLIC_API_URL: ${APP_URL}
     restart: unless-stopped
     depends_on:
       - backend
 
-  # ── Nginx Reverse Proxy (ties everything to macvlan IP) ──
+  # ── Nginx Reverse Proxy (macvlan IP + SSL termination) ──
   nginx:
     image: nginx:alpine
     restart: unless-stopped
@@ -275,11 +282,21 @@ services:
       - studio
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - certbot-webroot:/var/www/certbot:ro
+      - certbot-certs:/etc/letsencrypt:ro
     networks:
       default:
       optithru-macvlan:
         ipv4_address: ${APP_IP}
-    ports: []  # No host ports — macvlan IP handles routing
+
+  # ── Certbot (Let's Encrypt certificate management) ──
+  # Omit this service entirely if DOMAIN is not provided
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - certbot-webroot:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do sleep 12h & wait $${!}; certbot renew --webroot -w /var/www/certbot --quiet; done'
 
 networks:
   default:
@@ -295,9 +312,105 @@ networks:
 
 volumes:
   db-data:
+  certbot-webroot:
+  certbot-certs:
 ```
 
 ## Step 6: Create Nginx Config
+
+**If DOMAIN is provided**, write the HTTPS version. **If no DOMAIN**, write the HTTP-only version.
+
+### Option A: With DOMAIN and SSL (HTTPS)
+
+Write this to `$DEPLOY_DIR/nginx.conf`, replacing `<DOMAIN>` with the actual domain:
+
+```nginx
+worker_processes auto;
+events { worker_connections 1024; }
+
+http {
+    resolver 127.0.0.11 valid=30s;
+
+    # ── Redirect HTTP → HTTPS ──
+    server {
+        listen 80;
+        server_name <DOMAIN>;
+
+        # Let's Encrypt challenge
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+        }
+
+        location / {
+            return 301 https://$host$request_uri;
+        }
+    }
+
+    # ── Main HTTPS server — frontend at domain root ──
+    server {
+        listen 443 ssl;
+        server_name <DOMAIN>;
+
+        ssl_certificate     /etc/letsencrypt/live/<DOMAIN>/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/<DOMAIN>/privkey.pem;
+        ssl_protocols       TLSv1.2 TLSv1.3;
+        ssl_ciphers         HIGH:!aNULL:!MD5;
+        ssl_prefer_server_ciphers on;
+
+        # Frontend — served at /
+        location / {
+            proxy_pass http://frontend:3000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+
+        # FastAPI backend — proxied under /api/v1/
+        location /api/v1/ {
+            proxy_pass http://backend:8080/api/v1/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-Proto https;
+        }
+    }
+
+    # ── Supabase API — port 8000 (internal, not domain-routed) ──
+    server {
+        listen 8000;
+        location / {
+            proxy_pass http://kong:8000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+    }
+
+    # ── FastAPI docs — port 8080 ──
+    server {
+        listen 8080;
+        location / {
+            proxy_pass http://backend:8080;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+    }
+
+    # ── Supabase Studio — port 3001 ──
+    server {
+        listen 3001;
+        location / {
+            proxy_pass http://studio:3000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+    }
+}
+```
+
+### Option B: HTTP Only (no DOMAIN)
 
 Write this to `$DEPLOY_DIR/nginx.conf`:
 
@@ -364,14 +477,42 @@ http {
 
 ## Step 7: Create the .env File
 
-Write this to `$DEPLOY_DIR/.env`, substituting user parameters:
+Write this to `$DEPLOY_DIR/.env`, substituting user parameters.
 
+**If DOMAIN is provided**, set `APP_URL` and `SUPABASE_EXTERNAL_URL` to use the domain. **If no DOMAIN**, use IP-based URLs.
+
+### With DOMAIN:
 ```bash
 # ── Network ──
 APP_IP=<USER_PROVIDED_IP>
 SUBNET=<USER_PROVIDED_SUBNET>
 GATEWAY=<USER_PROVIDED_GATEWAY>
 HOST_INTERFACE=<USER_PROVIDED_INTERFACE>
+DOMAIN=<USER_PROVIDED_DOMAIN>
+LETSENCRYPT_EMAIL=<USER_PROVIDED_EMAIL>
+
+# ── Application URLs (domain-based) ──
+APP_URL=https://<DOMAIN>
+SUPABASE_EXTERNAL_URL=http://<APP_IP>:8000
+
+# ── Supabase Secrets ──
+POSTGRES_PASSWORD=optithru-super-secret-postgres-password-2025
+JWT_SECRET=optithru-super-secret-jwt-token-min-32-characters
+ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+```
+
+### Without DOMAIN:
+```bash
+# ── Network ──
+APP_IP=<USER_PROVIDED_IP>
+SUBNET=<USER_PROVIDED_SUBNET>
+GATEWAY=<USER_PROVIDED_GATEWAY>
+HOST_INTERFACE=<USER_PROVIDED_INTERFACE>
+
+# ── Application URLs (IP-based) ──
+APP_URL=http://<APP_IP>:3000
+SUPABASE_EXTERNAL_URL=http://<APP_IP>:8000
 
 # ── Supabase Secrets ──
 POSTGRES_PASSWORD=optithru-super-secret-postgres-password-2025
@@ -389,7 +530,16 @@ cd "$DEPLOY_DIR/frontend"
 # Add output: 'standalone' to next.config.js if not already present
 ```
 
-Ensure `allowedDevOrigins` includes `http://<APP_IP>:3000` and `http://<APP_IP>`.
+Also update `allowedDevOrigins` in `next.config.js` to include the domain and IP:
+
+```js
+allowedDevOrigins: [
+  'http://<APP_IP>:3000', 'http://<APP_IP>',
+  'http://localhost:3000', 'http://localhost',
+  // If DOMAIN is provided:
+  'https://<DOMAIN>', 'http://<DOMAIN>', '<DOMAIN>',
+],
+```
 
 ## Step 9: Build and Start
 
@@ -406,7 +556,45 @@ docker compose ps
 # All services should show "Up" / "healthy"
 ```
 
-## Step 10: Apply Database Migrations
+## Step 10: Obtain Let's Encrypt Certificate (HTTPS only)
+
+**Skip this step if no DOMAIN was provided.**
+
+First, start nginx with a temporary self-signed cert so Certbot can complete the HTTP-01 challenge. Or use the simpler approach — obtain the cert before starting the SSL server block:
+
+```bash
+# 1. Temporarily write an HTTP-only nginx.conf that serves the ACME challenge
+#    (the port-80 server block from Option A above, without the 443 block)
+
+# 2. Restart nginx to serve on port 80
+docker compose restart nginx
+
+# 3. Request the certificate
+docker compose run --rm certbot certonly \
+  --webroot \
+  -w /var/www/certbot \
+  -d <DOMAIN> \
+  --email <LETSENCRYPT_EMAIL> \
+  --agree-tos \
+  --no-eff-email
+
+# 4. Verify certificate was obtained
+docker compose exec nginx ls /etc/letsencrypt/live/<DOMAIN>/
+# Expected: cert.pem  chain.pem  fullchain.pem  privkey.pem
+
+# 5. Now write the full HTTPS nginx.conf (Option A from Step 6)
+#    and restart nginx
+docker compose restart nginx
+```
+
+**Certificate auto-renewal:** The certbot service runs a renewal check every 12 hours. After renewal, restart nginx to pick up the new cert:
+
+```bash
+# Add to host crontab:
+0 5 * * * cd /opt/optithru && docker compose exec nginx nginx -s reload
+```
+
+## Step 11: Apply Database Migrations
 
 Once the database is healthy, apply the master migration:
 
@@ -415,7 +603,7 @@ docker compose exec -T db psql -U supabase_admin -d postgres \
   < supabase/migrations/apply-all-safe.sql
 ```
 
-## Step 11: Seed Mock Data (Demo User + Organization + Products)
+## Step 12: Seed Mock Data (Demo User + Organization + Products)
 
 Run this SQL via the database container to create a demo environment:
 
@@ -425,13 +613,6 @@ docker compose exec -T db psql -U supabase_admin -d postgres <<'SEED_SQL'
 INSERT INTO public.organizations (id, name, slug)
 VALUES ('a0000000-0000-0000-0000-000000000001', 'Shankara Naturals', 'shankara')
 ON CONFLICT (id) DO NOTHING;
-
--- ── Create demo user via GoTrue (email: demo@optithru.com / password: demo1234) ──
--- Note: User creation should be done via the auth API. Use this curl after services are up:
--- curl -X POST http://<APP_IP>:8000/auth/v1/signup \
---   -H "apikey: <ANON_KEY>" \
---   -H "Content-Type: application/json" \
---   -d '{"email":"demo@optithru.com","password":"demo1234"}'
 
 -- ── Seed sample products (Shankara Naturals catalog) ──
 INSERT INTO public.product_variants (id, organization_id, product_name, category, sku, price, cogs, shipping_cost, inventory_quantity)
@@ -523,7 +704,10 @@ SEED_SQL
 Then create the demo user via the auth API:
 
 ```bash
-curl -s -X POST "http://<APP_IP>:8000/auth/v1/signup" \
+# Use DOMAIN URL if available, otherwise IP:8000
+AUTH_URL="${APP_URL:-http://<APP_IP>:8000}"
+
+curl -s -X POST "${SUPABASE_EXTERNAL_URL}/auth/v1/signup" \
   -H "apikey: <ANON_KEY>" \
   -H "Content-Type: application/json" \
   -d '{"email":"demo@optithru.com","password":"demo1234"}'
@@ -532,7 +716,6 @@ curl -s -X POST "http://<APP_IP>:8000/auth/v1/signup" \
 After signup, link the user to the organization:
 
 ```bash
-# Get the user ID from the signup response, then:
 docker compose exec -T db psql -U supabase_admin -d postgres -c "
   INSERT INTO public.organization_members (user_id, organization_id, role)
   SELECT id, 'a0000000-0000-0000-0000-000000000001', 'owner'
@@ -541,7 +724,7 @@ docker compose exec -T db psql -U supabase_admin -d postgres -c "
 "
 ```
 
-## Step 12: Configure Host Macvlan Access (Optional)
+## Step 13: Configure Host Macvlan Access (Optional)
 
 If the Docker host itself needs to reach the macvlan IP, create a shim interface:
 
@@ -552,20 +735,27 @@ sudo ip link set optithru-shim up
 sudo ip route add <APP_IP>/32 dev optithru-shim
 ```
 
-## Step 13: Verify Deployment
+## Step 14: Verify Deployment
 
-Run these checks:
-
+### With DOMAIN (HTTPS):
 ```bash
-# Frontend
-curl -s -o /dev/null -w "%{http_code}" http://<APP_IP>:3000
+# Frontend at domain root
+curl -s -o /dev/null -w "%{http_code}" https://<DOMAIN>
 # Expected: 200
 
-# Backend health
-curl -s http://<APP_IP>:8080/api/v1/healthz
+# HTTP → HTTPS redirect
+curl -s -o /dev/null -w "%{http_code}" http://<DOMAIN>
+# Expected: 301
+
+# SSL certificate check
+echo | openssl s_client -connect <DOMAIN>:443 -servername <DOMAIN> 2>/dev/null | openssl x509 -noout -dates
+# Expected: notBefore/notAfter dates from Let's Encrypt
+
+# Backend health (via domain)
+curl -s https://<DOMAIN>/api/v1/healthz
 # Expected: {"status":"ok"}
 
-# Supabase REST
+# Supabase API (via IP)
 curl -s http://<APP_IP>:8000/rest/v1/ -H "apikey: <ANON_KEY>"
 # Expected: JSON response
 
@@ -574,8 +764,27 @@ curl -s -o /dev/null -w "%{http_code}" http://<APP_IP>:3001
 # Expected: 200
 ```
 
-## Access URLs (at APP_IP)
+### Without DOMAIN (HTTP):
+```bash
+curl -s -o /dev/null -w "%{http_code}" http://<APP_IP>:3000
+curl -s http://<APP_IP>:8080/api/v1/healthz
+curl -s http://<APP_IP>:8000/rest/v1/ -H "apikey: <ANON_KEY>"
+curl -s -o /dev/null -w "%{http_code}" http://<APP_IP>:3001
+```
 
+## Access URLs
+
+### With DOMAIN:
+| Service | URL | Purpose |
+|---------|-----|---------|
+| Frontend | `https://<DOMAIN>` | Main application (SSL) |
+| Frontend (redirect) | `http://<DOMAIN>` | Redirects to HTTPS |
+| Backend API | `https://<DOMAIN>/api/v1/` | API via domain |
+| FastAPI Docs | `http://<APP_IP>:8080/docs` | API documentation |
+| Supabase API | `http://<APP_IP>:8000` | REST + Auth API |
+| Supabase Studio | `http://<APP_IP>:3001` | Database admin UI |
+
+### Without DOMAIN:
 | Service | URL | Purpose |
 |---------|-----|---------|
 | Frontend | `http://<APP_IP>:3000` | Main application |
@@ -591,6 +800,21 @@ curl -s -o /dev/null -w "%{http_code}" http://<APP_IP>:3001
 | Password | `demo1234` |
 | Organization | Shankara Naturals |
 
+## SSL Certificate Renewal
+
+Let's Encrypt certificates expire every 90 days. The certbot container auto-renews every 12 hours. To ensure nginx picks up renewed certs, add a cron job on the host:
+
+```bash
+# Add to crontab (crontab -e):
+0 5 * * * cd /opt/optithru && docker compose exec -T nginx nginx -s reload 2>/dev/null
+```
+
+To manually force renewal:
+```bash
+docker compose run --rm certbot renew --force-renewal
+docker compose exec nginx nginx -s reload
+```
+
 ## Troubleshooting
 
 | Issue | Fix |
@@ -601,3 +825,7 @@ curl -s -o /dev/null -w "%{http_code}" http://<APP_IP>:3001
 | Frontend can't reach API | Check `nginx.conf` proxy_pass targets match service names |
 | Auth signup returns 500 | GoTrue needs healthy db — wait and retry |
 | `next.config.js` must be .js | Never rename to `.ts` — Next.js 16 requires CommonJS |
+| Certbot fails `HTTP-01 challenge` | Ensure port 80 is reachable from the internet; check DNS A record points to `APP_IP` |
+| `ssl_certificate not found` | Run certbot first (Step 10) before enabling the 443 server block |
+| Certificate renewal fails | Check `docker compose logs certbot`; ensure webroot volume is shared |
+| `ERR_SSL_PROTOCOL_ERROR` | Certificate not yet obtained — complete Step 10 first |
