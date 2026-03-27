@@ -167,7 +167,7 @@ export function ProductDetail({ product, sales, buffer }: ProductDetailProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Throughput margin:</span>
-                <span className="font-medium text-green-600">{formatPercent(marginPct)}</span>
+                <span className="font-medium text-primary">{formatPercent(marginPct)}</span>
               </div>
             </div>
           </CardContent>
@@ -200,7 +200,7 @@ export function ProductDetail({ product, sales, buffer }: ProductDetailProps) {
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Total Throughput</p>
-                <p className="text-2xl font-semibold text-green-600">
+                <p className="text-2xl font-semibold text-primary">
                   {formatCurrency(throughputPerUnit * totalUnitsSold)}
                 </p>
               </div>
@@ -296,7 +296,7 @@ export function ProductDetail({ product, sales, buffer }: ProductDetailProps) {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Throughput Dollar-Days</p>
-                  <p className="text-xl font-semibold text-green-600">{formatCurrency(tdd)}</p>
+                  <p className="text-xl font-semibold text-primary">{formatCurrency(tdd)}</p>
                   <p className="text-xs text-muted-foreground">
                     {formatCurrency(throughputPerUnit)} x {totalUnitsSold} units
                   </p>
@@ -306,8 +306,8 @@ export function ProductDetail({ product, sales, buffer }: ProductDetailProps) {
                 <span className="text-sm font-medium">IDD/TDD Ratio</span>
                 <div className="flex items-center gap-2">
                   <span className={`text-xl font-bold ${
-                    iddTddRatio > 5 ? 'text-red-600' :
-                    iddTddRatio > 2 ? 'text-yellow-600' : 'text-green-600'
+                    iddTddRatio > 5 ? 'text-destructive' :
+                    iddTddRatio > 2 ? 'text-[oklch(0.60_0.15_292)]' : 'text-primary'
                   }`}>
                     {!isFinite(iddTddRatio) ? 'N/A' : iddTddRatio.toFixed(1)}
                   </span>

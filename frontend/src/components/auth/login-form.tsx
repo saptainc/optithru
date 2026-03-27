@@ -45,60 +45,60 @@ export function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="glass-card rounded-2xl p-8">
+    <div className="w-full max-w-sm mx-auto">
+      <div className="fizzy-panel p-8">
         {/* Brand */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg shadow-amber-600/20 mb-4">
-            <TrendingUp className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 rounded-[0.3em] bg-primary flex items-center justify-center mb-3">
+            <TrendingUp className="w-5 h-5 text-primary-foreground" />
           </div>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">OptiThru</h1>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to your account</p>
+          <h1 className="text-[1.5rem] font-black tracking-tight">OptiThru</h1>
+          <p className="text-[0.85rem] text-muted-foreground mt-0.5">Sign in to your account</p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 text-sm border border-red-200/50 dark:border-red-800/30">{error}</div>
+          <div className="mb-4 p-3 rounded-[0.5em] bg-destructive/10 text-destructive text-[0.85rem]">{error}</div>
         )}
 
         {debug && (
-          <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 text-sm font-mono border border-blue-200/50 dark:border-blue-800/30">{debug}</div>
+          <div className="mb-4 p-3 rounded-[0.5em] bg-primary/10 text-primary text-[0.85rem] font-mono">{debug}</div>
         )}
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1.5">Email</label>
+            <label className="block text-[0.85rem] font-medium mb-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
               placeholder="you@example.com"
-              className="w-full px-4 py-2.5 border border-border rounded-xl text-sm bg-background/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all"
+              className="w-full px-3 py-2 border border-input rounded-[0.5em] text-[0.85rem] bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1.5">Password</label>
+            <label className="block text-[0.85rem] font-medium mb-1">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
               placeholder="••••••••"
-              className="w-full px-4 py-2.5 border border-border rounded-xl text-sm bg-background/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all"
+              className="w-full px-3 py-2 border border-input rounded-[0.5em] text-[0.85rem] bg-background focus:outline-none focus:ring-2 focus:ring-ring/50 transition-all"
             />
           </div>
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full py-3 px-4 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:from-amber-700 hover:to-amber-800 transition-all shadow-md shadow-amber-600/20 hover:shadow-lg hover:shadow-amber-600/30 cursor-pointer"
+            className="w-full py-2.5 px-4 bg-primary text-primary-foreground fizzy-pill text-[0.85rem] font-semibold disabled:opacity-30 disabled:pointer-events-none hover:brightness-90 transition-[filter] duration-100 cursor-pointer"
           >
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </div>
 
-        <p className="text-sm text-muted-foreground text-center mt-6">
+        <p className="text-[0.85rem] text-muted-foreground text-center mt-6">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-amber-700 dark:text-amber-400 font-medium hover:underline">Sign up</Link>
+          <Link href="/signup" className="text-primary font-medium hover:underline underline-offset-4">Sign up</Link>
         </p>
       </div>
     </div>

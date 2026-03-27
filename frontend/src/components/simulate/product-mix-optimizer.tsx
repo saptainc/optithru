@@ -7,9 +7,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatCurrency } from '@/lib/format'
 
 const COLORS = [
-  'hsl(142,71%,45%)',
+  'oklch(0.57 0.19 260)',
   'hsl(217,91%,60%)',
-  'hsl(38,92%,50%)',
+  'oklch(0.60 0.15 292)',
   'hsl(0,84%,60%)',
   'hsl(262,83%,58%)',
   'hsl(174,72%,56%)',
@@ -101,7 +101,7 @@ export function ProductMixOptimizer({ products }: MixOptimizerProps) {
   return (
     <div className="space-y-6">
       {/* Summary */}
-      <Card className={analysis.improvement > 0 ? 'border-green-500/50' : ''}>
+      <Card className={analysis.improvement > 0 ? 'border-primary/50' : ''}>
         <CardHeader>
           <CardTitle className="text-base">Optimization Impact</CardTitle>
         </CardHeader>
@@ -113,11 +113,11 @@ export function ProductMixOptimizer({ products }: MixOptimizerProps) {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Recommended Throughput</p>
-              <p className="text-xl font-bold text-green-600">{formatCurrency(analysis.totalRecommendedT)}</p>
+              <p className="text-xl font-bold text-primary">{formatCurrency(analysis.totalRecommendedT)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Improvement</p>
-              <p className={`text-xl font-bold ${analysis.improvement > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-xl font-bold ${analysis.improvement > 0 ? 'text-primary' : 'text-destructive'}`}>
                 {analysis.improvement > 0 ? '+' : ''}{formatCurrency(analysis.improvement)} ({analysis.improvementPct.toFixed(1)}%)
               </p>
             </div>
@@ -212,7 +212,7 @@ export function ProductMixOptimizer({ products }: MixOptimizerProps) {
                     <TableCell className="text-right">{row.recommended_units}</TableCell>
                     <TableCell className="text-right">{formatCurrency(row.current_throughput)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(row.recommended_throughput)}</TableCell>
-                    <TableCell className={`text-right font-medium ${row.delta > 0 ? 'text-green-600' : row.delta < 0 ? 'text-red-600' : ''}`}>
+                    <TableCell className={`text-right font-medium ${row.delta > 0 ? 'text-primary' : row.delta < 0 ? 'text-destructive' : ''}`}>
                       {row.delta > 0 ? '+' : ''}{formatCurrency(row.delta)}
                     </TableCell>
                   </TableRow>

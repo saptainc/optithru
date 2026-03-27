@@ -15,7 +15,7 @@ const DEMO_SCENARIOS = [
     insight: 'T/CU rankings reveal hidden profitability',
     icon: TrendingUp,
     link: '/dashboard/rankings',
-    color: 'text-green-600',
+    color: 'text-primary',
   },
   {
     id: 'capital-traps',
@@ -25,7 +25,7 @@ const DEMO_SCENARIOS = [
     insight: 'Capital trap analysis identifies waste',
     icon: AlertTriangle,
     link: '/dashboard/products?tab=capital-traps',
-    color: 'text-red-600',
+    color: 'text-destructive',
   },
   {
     id: 'email-vs-meta',
@@ -55,7 +55,7 @@ const DEMO_SCENARIOS = [
     insight: 'Buffer management unlocks trapped capital',
     icon: Clock,
     link: '/dashboard/buffers',
-    color: 'text-amber-600',
+    color: 'text-[oklch(0.60_0.15_292)]',
   },
 ]
 

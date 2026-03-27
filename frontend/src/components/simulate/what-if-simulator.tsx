@@ -333,13 +333,13 @@ export function WhatIfSimulator({ organizationId, baseline, products, channels, 
                 <div className="mt-4 p-3 bg-muted rounded-lg grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground">Throughput Lost</p>
-                    <p className="font-semibold text-red-600 dark:text-red-400">
+                    <p className="font-semibold text-destructive">
                       -{formatCurrency(throughputLost)}
                     </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Freed Capital</p>
-                    <p className="font-semibold text-green-600 dark:text-green-400">
+                    <p className="font-semibold text-primary">
                       +{formatCurrency(freedCapital)}
                     </p>
                   </div>

@@ -63,28 +63,26 @@ export function Header({ user }: { user: User }) {
 
   return (
     <>
-    <header className="h-14 border-b flex items-center justify-between px-6 glass sticky top-0 z-30">
-      <div className="flex items-center gap-3">
-        <h1 className="text-sm font-medium text-muted-foreground">Throughput Accounting</h1>
-      </div>
-      <div className="flex items-center gap-2">
+    <header className="h-12 border-b border-border flex items-center justify-between px-5 bg-background sticky top-0 z-30">
+      <h1 className="text-[0.85rem] font-medium text-muted-foreground">Throughput Accounting</h1>
+      <div className="flex items-center gap-1.5">
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={exportReport}
           disabled={exporting}
-          className="text-muted-foreground hover:text-foreground gap-2 cursor-pointer"
+          className="fizzy-pill gap-1.5 cursor-pointer"
         >
-          <FileDown className="h-4 w-4" />
+          <FileDown className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">{exporting ? 'Exporting...' : 'Export'}</span>
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => setAiPanelOpen(true)}
-          className="gap-2 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer"
+          className="fizzy-pill gap-1.5 text-primary cursor-pointer"
         >
-          <Sparkles className="h-4 w-4" />
+          <Sparkles className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Ask AI</span>
         </Button>
         <NotificationBell organizationId={orgId} />

@@ -252,7 +252,7 @@ export function ProductTable({ initialData }: { initialData: ProductRow[] }) {
                 </TableCell>
 
                 {/* Throughput per unit — key metric */}
-                <TableCell className="text-right font-bold text-green-600 dark:text-green-400">
+                <TableCell className="text-right font-bold text-primary">
                   ${row.throughput_per_unit.toFixed(2)}
                 </TableCell>
 

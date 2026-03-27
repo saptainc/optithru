@@ -84,7 +84,7 @@ export function CapitalTrapTable({ data }: { data: CapitalTrapData[] }) {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Capital Traps</CardDescription>
-            <CardTitle className="text-2xl text-red-600">{trapCount}</CardTitle>
+            <CardTitle className="text-2xl text-destructive">{trapCount}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground">IDD/TDD ratio &gt; 5</p>
@@ -93,7 +93,7 @@ export function CapitalTrapTable({ data }: { data: CapitalTrapData[] }) {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Watch List</CardDescription>
-            <CardTitle className="text-2xl text-yellow-600">{watchCount}</CardTitle>
+            <CardTitle className="text-2xl text-[oklch(0.60_0.15_292)]">{watchCount}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground">IDD/TDD ratio 2-5</p>
@@ -153,7 +153,7 @@ export function CapitalTrapTable({ data }: { data: CapitalTrapData[] }) {
                 </TableCell>
                 <TableCell className="text-right">{row.inventory_quantity}</TableCell>
                 <TableCell className="text-right">{formatCurrency(row.cogs)}</TableCell>
-                <TableCell className="text-right text-green-600 dark:text-green-400">
+                <TableCell className="text-right text-primary">
                   {formatCurrency(row.throughput_per_unit)}
                 </TableCell>
                 <TableCell className="text-right">{row.avg_days_in_stock.toFixed(0)}</TableCell>

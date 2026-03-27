@@ -36,8 +36,8 @@ export function ScenarioPanel({ title, before, after }: ScenarioPanelProps) {
             <p className="text-xs text-muted-foreground">NP: {formatCurrency(after.netProfit)}</p>
           </div>
         </div>
-        <div className={`mt-4 p-3 rounded-lg text-center ${deltaT >= 0 ? 'bg-green-50 dark:bg-green-950/20' : 'bg-red-50 dark:bg-red-950/20'}`}>
-          <p className={`text-2xl font-bold ${deltaT >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+        <div className={`mt-4 p-3 rounded-lg text-center ${deltaT >= 0 ? 'bg-primary/10' : 'bg-destructive/10'}`}>
+          <p className={`text-2xl font-bold ${deltaT >= 0 ? 'text-primary' : 'text-destructive'}`}>
             {deltaT >= 0 ? '+' : ''}{formatCurrency(deltaT)} ({deltaPct >= 0 ? '+' : ''}{deltaPct.toFixed(1)}%)
           </p>
           <p className="text-xs text-muted-foreground mt-1">Throughput Change ({'\u0394'}T)</p>

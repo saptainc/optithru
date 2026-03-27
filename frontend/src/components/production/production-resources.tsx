@@ -160,9 +160,9 @@ export function ProductionResources({ initialResources, organizationId }: Props)
   }
 
   function getUtilizationColor(pct: number): string {
-    if (pct >= 90) return 'text-red-600'
-    if (pct >= 70) return 'text-yellow-600'
-    return 'text-green-600'
+    if (pct >= 90) return 'text-destructive'
+    if (pct >= 70) return 'text-[oklch(0.60_0.15_292)]'
+    return 'text-primary'
   }
 
   return (
@@ -172,7 +172,7 @@ export function ProductionResources({ initialResources, organizationId }: Props)
         <p className="text-sm text-muted-foreground">
           {resources.length} resource{resources.length !== 1 ? 's' : ''} tracked
           {resources.some(r => r.is_constraint) && (
-            <> &middot; Constraint: <span className="font-medium text-red-600">{resources.find(r => r.is_constraint)?.name}</span></>
+            <> &middot; Constraint: <span className="font-medium text-destructive">{resources.find(r => r.is_constraint)?.name}</span></>
           )}
         </p>
         <Button size="sm" onClick={() => { resetForm(); setShowForm(true) }}>
@@ -260,7 +260,7 @@ export function ProductionResources({ initialResources, organizationId }: Props)
         {resources.map(r => {
           const utilization = getUtilization(r)
           return (
-            <Card key={r.id} className={r.is_constraint ? 'border-red-500 border-2' : ''}>
+            <Card key={r.id} className={r.is_constraint ? 'border-destructive border-2' : ''}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">{r.name}</CardTitle>
@@ -299,7 +299,7 @@ export function ProductionResources({ initialResources, organizationId }: Props)
                     variant="ghost"
                     size="sm"
                     onClick={() => toggleConstraint(r)}
-                    className={r.is_constraint ? 'text-red-600' : ''}
+                    className={r.is_constraint ? 'text-destructive' : ''}
                   >
                     {r.is_constraint ? (
                       <><ShieldOff className="h-3.5 w-3.5 mr-1" /> Unmark</>

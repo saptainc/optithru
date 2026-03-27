@@ -33,14 +33,14 @@ function RankChangeIndicator({ change }: { change: number }) {
   }
   if (change > 0) {
     return (
-      <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm font-medium">
+      <span className="flex items-center gap-1 text-primary text-sm font-medium">
         <ArrowUp className="h-3 w-3" />
         +{change}
       </span>
     )
   }
   return (
-    <span className="flex items-center gap-1 text-red-600 dark:text-red-400 text-sm font-medium">
+    <span className="flex items-center gap-1 text-destructive text-sm font-medium">
       <ArrowDown className="h-3 w-3" />
       {change}
     </span>
@@ -149,7 +149,7 @@ export function SplitComparison({ products }: { products: CompareProduct[] }) {
                         <TableCell className="text-sm max-w-[180px] truncate">
                           {p.product_name}
                         </TableCell>
-                        <TableCell className="text-right font-medium text-green-600 dark:text-green-400">
+                        <TableCell className="text-right font-medium text-primary">
                           {formatCurrency(p.throughput_per_unit)}
                         </TableCell>
                         <TableCell className="text-right">

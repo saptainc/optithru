@@ -89,10 +89,10 @@ export function BudgetReallocationCard({ channels }: BudgetReallocationCardProps
 
               const dotColor =
                 ch.tcu >= 1
-                  ? 'bg-green-500'
+                  ? 'bg-primary'
                   : ch.tcu >= 0.5
-                    ? 'bg-yellow-500'
-                    : 'bg-red-500'
+                    ? 'bg-[oklch(0.60_0.15_292)]'
+                    : 'bg-muted-foreground'
 
               return (
                 <li key={ch.channel} className="flex items-start gap-2">

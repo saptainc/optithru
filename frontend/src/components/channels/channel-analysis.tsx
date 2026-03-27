@@ -38,19 +38,19 @@ interface ChannelAnalysisProps {
 }
 
 function getTcuColor(tcu: number): string {
-  if (tcu >= 1) return '#16a34a' // green-600
-  if (tcu >= 0.5) return '#d97706' // amber-600
-  return '#dc2626' // red-600
+  if (tcu >= 1) return 'oklch(0.57 0.19 260)'  // primary blue
+  if (tcu >= 0.5) return 'oklch(0.60 0.15 292)' // violet
+  return 'oklch(0.55 0.02 260)'                  // muted ink
 }
 
 function getTcuBadge(tcu: number) {
   if (tcu >= 1) {
-    return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white">High</Badge>
+    return <Badge className="bg-primary hover:bg-primary/90 text-primary-foreground">High</Badge>
   }
   if (tcu >= 0.5) {
-    return <Badge className="bg-amber-500 hover:bg-amber-600 text-white">Medium</Badge>
+    return <Badge className="bg-[oklch(0.60_0.15_292)] hover:bg-[oklch(0.55_0.15_292)] text-white">Medium</Badge>
   }
-  return <Badge variant="destructive">Low</Badge>
+  return <Badge variant="secondary" className="opacity-60">Low</Badge>
 }
 
 function formatChannelName(channel: string): string {

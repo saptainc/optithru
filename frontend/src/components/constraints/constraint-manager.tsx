@@ -227,7 +227,7 @@ export function ConstraintManager({ initialConstraints, organizationId }: Constr
               key={constraint.id}
               className={
                 constraint.is_active
-                  ? 'border-green-500 border-2'
+                  ? 'border-primary border-2'
                   : ''
               }
             >

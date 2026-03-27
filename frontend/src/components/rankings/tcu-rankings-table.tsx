@@ -59,24 +59,24 @@ interface RankedProduct extends Product {
 function getPriorityBadge(rank: number, total: number) {
   const pct = rank / total
   if (pct <= 0.25) {
-    return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white">Exploit</Badge>
+    return <Badge className="bg-primary hover:bg-primary/90 text-primary-foreground">Exploit</Badge>
   }
   if (pct <= 0.5) {
-    return <Badge className="bg-blue-600 hover:bg-blue-700 text-white">Subordinate</Badge>
+    return <Badge className="bg-[oklch(0.60_0.15_292)] hover:bg-[oklch(0.55_0.15_292)] text-white">Subordinate</Badge>
   }
   if (pct <= 0.75) {
     return <Badge variant="secondary">Monitor</Badge>
   }
-  return <Badge variant="destructive">Review</Badge>
+  return <Badge variant="secondary" className="opacity-60">Review</Badge>
 }
 
 function getTcuColor(tcu: number, maxTcu: number): string {
   if (maxTcu === 0) return 'text-muted-foreground'
   const ratio = tcu / maxTcu
-  if (ratio >= 0.7) return 'text-emerald-600 font-semibold'
-  if (ratio >= 0.4) return 'text-blue-600'
-  if (ratio >= 0.2) return 'text-amber-600'
-  return 'text-red-600'
+  if (ratio >= 0.7) return 'text-primary font-semibold'
+  if (ratio >= 0.4) return 'text-[oklch(0.60_0.15_292)]'
+  if (ratio >= 0.2) return 'text-muted-foreground font-medium'
+  return 'text-muted-foreground'
 }
 
 export function TCURankingsTable({
