@@ -21,7 +21,7 @@ export function LoginForm() {
 
     try {
       const supabase = createClient()
-      setDebug('Supabase client created, calling signInWithPassword...')
+      setDebug('Calling signInWithPassword...')
 
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -33,9 +33,8 @@ export function LoginForm() {
         setError(authError.message)
         setLoading(false)
       } else {
-        setDebug('Login success! User: ' + data.user?.email + ' — Redirecting...')
-        router.push('/dashboard')
-        router.refresh()
+        setDebug('Login success! User: ' + data.user?.email + ' — Cookies: ' + document.cookie.substring(0, 100))
+        window.location.href = '/dashboard'
       }
     } catch (e: any) {
       setDebug('Exception: ' + e.message)
