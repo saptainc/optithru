@@ -2,18 +2,23 @@
 -- Sets up PostgreSQL roles and extensions required by Supabase services.
 -- Runs once on first container start via docker-entrypoint-initdb.d
 
+-- Create a postgres superuser role (GoTrue migrations reference it)
+CREATE ROLE postgres SUPERUSER LOGIN PASSWORD 'optithru-super-secret-postgres-password-2025';
+
 -- Roles
 CREATE ROLE anon NOLOGIN;
 CREATE ROLE authenticated NOLOGIN;
 CREATE ROLE service_role NOLOGIN BYPASSRLS;
-CREATE ROLE authenticator NOINHERIT LOGIN PASSWORD 'your-super-secret-and-long-postgres-password';
-CREATE ROLE supabase_auth_admin NOINHERIT CREATEROLE LOGIN PASSWORD 'your-super-secret-and-long-postgres-password';
-CREATE ROLE supabase_storage_admin NOINHERIT CREATEROLE LOGIN PASSWORD 'your-super-secret-and-long-postgres-password';
+CREATE ROLE authenticator NOINHERIT LOGIN PASSWORD 'optithru-super-secret-postgres-password-2025';
+CREATE ROLE supabase_auth_admin NOINHERIT CREATEROLE LOGIN PASSWORD 'optithru-super-secret-postgres-password-2025';
+CREATE ROLE supabase_storage_admin NOINHERIT CREATEROLE LOGIN PASSWORD 'optithru-super-secret-postgres-password-2025';
 
 -- Role grants
 GRANT anon TO authenticator;
 GRANT authenticated TO authenticator;
 GRANT service_role TO authenticator;
+GRANT supabase_auth_admin TO supabase_admin;
+GRANT supabase_storage_admin TO supabase_admin;
 GRANT supabase_auth_admin TO postgres;
 GRANT supabase_storage_admin TO postgres;
 
@@ -28,6 +33,9 @@ CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;
 
 -- Permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT CREATE ON SCHEMA public TO supabase_auth_admin;
+GRANT ALL ON SCHEMA auth TO supabase_auth_admin;
+GRANT ALL ON SCHEMA auth TO service_role;
 GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;

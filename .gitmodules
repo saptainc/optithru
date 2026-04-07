@@ -1,0 +1,4 @@
+[submodule "services/kanban"]
+	path = services/kanban
+	url = https://github.com/saptainc/fizzy.git
+	branch = toc-strategic-kanban

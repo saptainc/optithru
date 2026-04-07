@@ -1,0 +1,83 @@
+worker_processes auto;
+events { worker_connections 1024; }
+
+http {
+    resolver 127.0.0.11 valid=30s;
+
+    # ── Redirect HTTP → HTTPS ──
+    server {
+        listen 80;
+        server_name shankara.sapta.com;
+
+        # Let's Encrypt challenge
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+        }
+
+        location / {
+            return 301 https://$host$request_uri;
+        }
+    }
+
+    # ── Main HTTPS server — frontend at domain root ──
+    server {
+        listen 443 ssl;
+        server_name shankara.sapta.com;
+
+        ssl_certificate     /etc/letsencrypt/live/shankara.sapta.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/shankara.sapta.com/privkey.pem;
+        ssl_protocols       TLSv1.2 TLSv1.3;
+        ssl_ciphers         HIGH:!aNULL:!MD5;
+        ssl_prefer_server_ciphers on;
+
+        # Frontend — served at /
+        location / {
+            proxy_pass http://frontend:3000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+
+        # FastAPI backend — proxied under /api/v1/
+        location /api/v1/ {
+            proxy_pass http://backend:8080/api/v1/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-Proto https;
+        }
+    }
+
+    # ── Supabase API — port 8000 (internal, not domain-routed) ──
+    server {
+        listen 8000;
+        location / {
+            proxy_pass http://kong:8000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+    }
+
+    # ── FastAPI docs — port 8080 ──
+    server {
+        listen 8080;
+        location / {
+            proxy_pass http://backend:8080;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+    }
+
+    # ── Supabase Studio — port 3001 ──
+    server {
+        listen 3001;
+        location / {
+            proxy_pass http://studio:3000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+    }
+}

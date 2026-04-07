@@ -1,0 +1,191 @@
+services:
+  # ── Supabase PostgreSQL ──
+  db:
+    image: supabase/postgres:15.8.1.060
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+      POSTGRES_HOST: /var/run/postgresql
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./supabase/volumes/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U supabase_admin -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── Supabase Auth (GoTrue) ──
+  auth:
+    image: supabase/gotrue:v2.164.0
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${SUPABASE_EXTERNAL_URL}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: ${APP_URL}
+      GOTRUE_URI_ALLOW_LIST: ${APP_URL}
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_SMTP_ADMIN_EMAIL: admin@localhost
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9999/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Supabase PostgREST ──
+  rest:
+    image: postgrest/postgrest:v12.2.3
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage,graphql_public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: 3600
+
+  # ── Kong API Gateway ──
+  kong:
+    image: kong:2.8.1
+    restart: unless-stopped
+    depends_on:
+      auth:
+        condition: service_healthy
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+      KONG_STATUS_LISTEN: 0.0.0.0:8100
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_ADMIN_LISTEN: "off"
+    volumes:
+      - ./supabase/volumes/kong/kong.yml:/var/lib/kong/kong.yml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "kong health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Supabase Studio (Admin UI) ──
+  studio:
+    image: supabase/studio:latest
+    restart: unless-stopped
+    depends_on:
+      kong:
+        condition: service_healthy
+    environment:
+      STUDIO_DEFAULT_ORGANIZATION: OptiThru
+      STUDIO_DEFAULT_PROJECT: Default
+      SUPABASE_PUBLIC_URL: ${SUPABASE_EXTERNAL_URL}
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_REST_URL: ${SUPABASE_EXTERNAL_URL}/rest/v1/
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      LOGFLARE_API_KEY: dummy
+      LOGFLARE_URL: http://localhost
+      NEXT_PUBLIC_ENABLE_LOGS: "false"
+      NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
+
+  # ── FastAPI Backend ──
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      kong:
+        condition: service_healthy
+    environment:
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      FRONTEND_URL: ${APP_URL}
+      ENVIRONMENT: production
+      FIZZY_EMBED_SECRET: ${FIZZY_EMBED_SECRET}
+      KANBAN_INTERNAL_URL: http://kanban-service
+      FIZZY_ACCESS_TOKEN: ${FIZZY_ACCESS_TOKEN}
+      FIZZY_BOARD_ID: ${FIZZY_BOARD_ID}
+      FIZZY_ACCOUNT_SLUG: ${FIZZY_ACCOUNT_SLUG}
+      KANBAN_URL: ${KANBAN_URL}
+
+  # ── Fizzy TOC Kanban ──
+  kanban-service:
+    build:
+      context: ./services/kanban
+      dockerfile: Dockerfile
+    ports:
+      - "3006:80"
+    environment:
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      FIZZY_EMBED_SECRET: ${FIZZY_EMBED_SECRET}
+      CSP_FRAME_ANCESTORS: ${APP_URL}
+      FIZZY_EMBED_ALLOWED_ORIGINS: ${APP_URL}
+      BASE_URL: ${KANBAN_URL:-https://kanban.shankara.sapta.com}
+      FORCE_SSL: "false"
+    volumes:
+      - kanban_storage:/rails/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── Next.js Frontend (macvlan IP — directly accessible on LAN) ──
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_EXTERNAL_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}
+        NEXT_PUBLIC_API_URL: ${APP_URL}
+    restart: unless-stopped
+    environment:
+      HOSTNAME: 0.0.0.0
+      SUPABASE_URL_INTERNAL: http://kong:8000
+      SUPABASE_ANON_KEY_INTERNAL: ${ANON_KEY}
+      BACKEND_URL_INTERNAL: http://backend:8080
+    depends_on:
+      - backend
+      - kanban-service
+    networks:
+      default:
+      macvlansp6:
+        ipv4_address: ${APP_IP}
+
+networks:
+  default:
+    driver: bridge
+  macvlansp6:
+    external: true
+
+volumes:
+  db-data:
+  kanban_storage:
