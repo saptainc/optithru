@@ -15,6 +15,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      default:
+      lan:
+        ipv4_address: ${IP_PREFIX}.1
 
   # ── Supabase Auth (GoTrue) ──
   auth:
@@ -49,6 +53,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      default:
+      lan:
+        ipv4_address: ${IP_PREFIX}.2
 
   # ── Supabase PostgREST ──
   rest:
@@ -65,6 +73,10 @@ services:
       PGRST_DB_USE_LEGACY_GUCS: "false"
       PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
       PGRST_APP_SETTINGS_JWT_EXP: 3600
+    networks:
+      default:
+      lan:
+        ipv4_address: ${IP_PREFIX}.3
 
   # ── Kong API Gateway ──
   kong:
@@ -88,6 +100,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      default:
+      lan:
+        ipv4_address: ${IP_PREFIX}.4
 
   # ── Supabase Studio (Admin UI) ──
   studio:
@@ -110,6 +126,10 @@ services:
       LOGFLARE_URL: http://localhost
       NEXT_PUBLIC_ENABLE_LOGS: "false"
       NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
+    networks:
+      default:
+      lan:
+        ipv4_address: ${IP_PREFIX}.5
 
   # ── FastAPI Backend ──
   backend:
@@ -132,32 +152,13 @@ services:
       FIZZY_BOARD_ID: ${FIZZY_BOARD_ID}
       FIZZY_ACCOUNT_SLUG: ${FIZZY_ACCOUNT_SLUG}
       KANBAN_URL: ${KANBAN_URL}
+    networks:
+      default:
+      lan:
+        ipv4_address: ${IP_PREFIX}.6
 
-  # ── Fizzy TOC Kanban ──
-  kanban-service:
-    build:
-      context: ./services/kanban
-      dockerfile: Dockerfile
-    ports:
-      - "3006:80"
-    environment:
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-      FIZZY_EMBED_SECRET: ${FIZZY_EMBED_SECRET}
-      CSP_FRAME_ANCESTORS: ${APP_URL}
-      FIZZY_EMBED_ALLOWED_ORIGINS: ${APP_URL}
-      BASE_URL: ${KANBAN_URL:-https://kanban.shankara.sapta.com}
-      FORCE_SSL: "false"
-    volumes:
-      - kanban_storage:/rails/storage
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/up"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-
-  # ── Next.js Frontend (macvlan IP — directly accessible on LAN) ──
+  # ── Next.js Frontend ──
+  # Public IP — NPM forwards shankara.sapta.com → ${APP_IP}:3000
   frontend:
     build:
       context: ./frontend
@@ -177,14 +178,45 @@ services:
       - kanban-service
     networks:
       default:
-      macvlansp6:
+      lan:
         ipv4_address: ${APP_IP}
 
+  # ── Fizzy TOC Kanban ──
+  # Public IP — NPM forwards kanbanshankara.sapta.com → ${KANBAN_IP}:80
+  # No host port mapping is needed because the container has its own LAN IP.
+  kanban-service:
+    build:
+      context: ./services/kanban
+      dockerfile: Dockerfile
+    environment:
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      FIZZY_EMBED_SECRET: ${FIZZY_EMBED_SECRET}
+      CSP_FRAME_ANCESTORS: ${APP_URL}
+      FIZZY_EMBED_ALLOWED_ORIGINS: ${APP_URL}
+      BASE_URL: ${KANBAN_URL:-https://kanban.shankara.sapta.com}
+      FORCE_SSL: "false"
+    volumes:
+      - kanban_storage:/rails/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      default:
+      lan:
+        ipv4_address: ${KANBAN_IP}
+
 networks:
+  # Internal bridge for service-to-service Docker DNS (kong, backend, db, etc.)
   default:
     driver: bridge
-  macvlansp6:
+  # External macvlan — each service gets its own LAN IP
+  lan:
     external: true
+    name: ${MACVLAN_NETWORK}
 
 volumes:
   db-data:
