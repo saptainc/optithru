@@ -7,7 +7,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from app.config import get_settings
-from app.routers import health, calculations, shopify, reports, invites, billing, public_api, woocommerce, feedback, ai_insights, shopify_oauth, marketplace, anomalies
+from app.routers import health, calculations, shopify, reports, invites, billing, public_api, woocommerce, feedback, ai_insights, shopify_oauth, marketplace, anomalies, kanban
 
 settings = get_settings()
 
@@ -52,3 +52,4 @@ app.include_router(ai_insights.router, prefix="/api/v1")
 app.include_router(shopify_oauth.router, prefix="/api/v1")
 app.include_router(marketplace.router, prefix="/api/v1")
 app.include_router(anomalies.router, prefix="/api/v1")
+app.include_router(kanban.router, prefix="/api/v1")

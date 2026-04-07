@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     SHOPIFY_CLIENT_ID: str = ""
     SHOPIFY_CLIENT_SECRET: str = ""
     ANTHROPIC_API_KEY: str = ""
+    FIZZY_EMBED_SECRET: str = ""
+    KANBAN_INTERNAL_URL: str = "http://kanban-service"
+    KANBAN_URL: str = "https://kanban.shankara.sapta.com"
+    FIZZY_ACCESS_TOKEN: str = ""
+    FIZZY_BOARD_ID: str = ""
+    FIZZY_ACCOUNT_SLUG: str = "1"
 
     model_config = {"env_file": ".env"}
 
