@@ -477,6 +477,13 @@ http {
 
 ## Step 7: Create the .env File
 
+> **CRITICAL — JWT_SECRET must match the demo keys.**
+> The Supabase demo `ANON_KEY` and `SERVICE_ROLE_KEY` below are signed with the
+> standard self-hosted secret `super-secret-jwt-token-with-at-least-32-characters-long`.
+> If `JWT_SECRET` doesn't match, PostgREST returns `JWSError JWSInvalidSignature`
+> on every backend service-key call (login works, but `/api/v1/*` calls fail).
+> If you generate fresh keys for production, update both `JWT_SECRET` and the keys.
+
 Write this to `$DEPLOY_DIR/.env`, substituting user parameters.
 
 **If DOMAIN is provided**, set `APP_URL` and `SUPABASE_EXTERNAL_URL` to use the domain. **If no DOMAIN**, use IP-based URLs.
@@ -497,7 +504,7 @@ SUPABASE_EXTERNAL_URL=http://<APP_IP>:8000
 
 # ── Supabase Secrets ──
 POSTGRES_PASSWORD=optithru-super-secret-postgres-password-2025
-JWT_SECRET=optithru-super-secret-jwt-token-min-32-characters
+JWT_SECRET=super-secret-jwt-token-with-at-least-32-characters-long
 ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
 SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
 ```
@@ -516,7 +523,7 @@ SUPABASE_EXTERNAL_URL=http://<APP_IP>:8000
 
 # ── Supabase Secrets ──
 POSTGRES_PASSWORD=optithru-super-secret-postgres-password-2025
-JWT_SECRET=optithru-super-secret-jwt-token-min-32-characters
+JWT_SECRET=super-secret-jwt-token-with-at-least-32-characters-long
 ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
 SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
 ```
@@ -829,3 +836,27 @@ docker compose exec nginx nginx -s reload
 | `ssl_certificate not found` | Run certbot first (Step 10) before enabling the 443 server block |
 | Certificate renewal fails | Check `docker compose logs certbot`; ensure webroot volume is shared |
 | `ERR_SSL_PROTOCOL_ERROR` | Certificate not yet obtained — complete Step 10 first |
+| `JWSError JWSInvalidSignature` from PostgREST | `JWT_SECRET` doesn't match the demo keys. Use `super-secret-jwt-token-with-at-least-32-characters-long`. Restart `auth`, `rest`, `kong`, `backend` after fixing. |
+| Frontend login works but `/api/v1/*` returns 500 | Same as above — JWT_SECRET mismatch. The backend's Supabase client uses the SERVICE_KEY which fails verification at PostgREST. |
+| Backend has stale config after `.env` change | Backend caches settings via `@lru_cache`. Always `docker compose restart backend` after editing `.env`. |
+| Kong returns 502 after restarting `auth` | Kong has cached the old container's DNS. Run `docker compose restart kong` after recreating `auth`. |
+
+## Next: Fizzy TOC Kanban Integration
+
+Once OptiThru is deployed and bootstrap is complete, see the
+**`fizzy-optithru-integration`** skill to add the Fizzy Strategic Kanban
+on its own subdomain (e.g., `kanbanshankara.sapta.com`) with SSO.
+
+For a fresh redeploy from a clean checkout, use the bootstrap script:
+
+```bash
+git clone --recurse-submodules https://github.com/saptainc/optithru.git $DEPLOY_DIR
+cd $DEPLOY_DIR
+cp .env.example .env
+# Edit .env with real secrets (generate FIZZY_EMBED_SECRET and SECRET_KEY_BASE
+# with `openssl rand -hex 32` and `openssl rand -hex 64`)
+docker compose build
+docker compose up -d
+./bootstrap.sh
+# Then trigger first SSO from the browser and follow the printed Fizzy steps.
+```
