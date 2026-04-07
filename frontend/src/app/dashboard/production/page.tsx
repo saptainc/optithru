@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Factory } from 'lucide-react'
 import { ProductionResources } from '@/components/production/production-resources'
+import { ProductionTabs } from '@/components/production/production-tabs'
 
 export default async function ProductionPage() {
   const supabase = await createClient()
@@ -24,13 +25,16 @@ export default async function ProductionPage() {
       <div className="flex items-center gap-3">
         <Factory className="h-6 w-6 text-muted-foreground" />
         <div>
-          <h1 className="text-2xl font-semibold">Production Resources</h1>
+          <h1 className="text-2xl font-semibold">Production & Kanban</h1>
           <p className="text-sm text-muted-foreground">
-            Track manufacturing capacity and identify your production constraint
+            Track manufacturing capacity and manage strategic improvement initiatives
           </p>
         </div>
       </div>
-      <ProductionResources initialResources={resources || []} organizationId={orgId} />
+      <ProductionTabs
+        resources={resources || []}
+        organizationId={orgId}
+      />
     </div>
   )
 }

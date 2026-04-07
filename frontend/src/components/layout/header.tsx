@@ -2,18 +2,20 @@
 
 import type { User } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
-import { FileDown, Sparkles } from 'lucide-react'
+import { FileDown, Sparkles, ClipboardList } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { NotificationBell } from '@/components/layout/notification-bell'
 import { AskAIPanel } from '@/components/layout/ask-ai-panel'
+import { TaskDrawer } from '@/components/layout/task-drawer'
 import { ProfileDropdown } from '@/components/layout/profile-dropdown'
 
 export function Header({ user }: { user: User }) {
   const [exporting, setExporting] = useState(false)
   const [orgId, setOrgId] = useState('')
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  const [taskDrawerOpen, setTaskDrawerOpen] = useState(false)
 
   useEffect(() => {
     async function loadOrg() {
@@ -85,6 +87,15 @@ export function Header({ user }: { user: User }) {
           <Sparkles className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Ask AI</span>
         </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setTaskDrawerOpen(true)}
+          className="fizzy-pill gap-1.5 cursor-pointer"
+        >
+          <ClipboardList className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Tasks</span>
+        </Button>
         <NotificationBell organizationId={orgId} />
         <ProfileDropdown
           email={user.email || ''}
@@ -93,6 +104,7 @@ export function Header({ user }: { user: User }) {
       </div>
     </header>
     <AskAIPanel open={aiPanelOpen} onClose={() => setAiPanelOpen(false)} />
+    <TaskDrawer open={taskDrawerOpen} onClose={() => setTaskDrawerOpen(false)} />
     </>
   )
 }

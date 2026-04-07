@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Target } from 'lucide-react'
 import Link from 'next/link'
+import { TocActionButton } from '@/components/dashboard/toc-action-button'
 
 interface Constraint {
   id: string
@@ -74,7 +75,17 @@ export function ConstraintStatus({ constraint }: { constraint: Constraint | null
 
             {/* TOC guidance */}
             <div className="bg-muted/50 rounded-[0.3em] p-3">
-              <p className="text-[0.75rem] font-semibold mb-1">TOC Focus</p>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[0.75rem] font-semibold">TOC Focus</p>
+                <TocActionButton
+                  title={`Exploit constraint: ${constraint.name}`}
+                  tocStep="exploit"
+                  targetMetric="throughput"
+                  linkedEntityType="constraint"
+                  linkedEntityId={constraint.id}
+                  linkedEntityName={constraint.name}
+                />
+              </div>
               <p className="text-[0.7rem] text-muted-foreground leading-relaxed">
                 Exploit: maximize throughput on this resource. Subordinate: align all other
                 decisions to protect constraint output.

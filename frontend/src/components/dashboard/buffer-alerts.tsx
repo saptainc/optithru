@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AlertTriangle, ShieldAlert } from 'lucide-react'
 import Link from 'next/link'
+import { TocActionButton } from '@/components/dashboard/toc-action-button'
 
 interface BufferAlert {
   variant_id: string
@@ -75,6 +76,14 @@ export function BufferAlerts({ buffers }: { buffers: BufferAlert[] }) {
                       {daysLeft !== null && <> · ~{daysLeft}d supply</>}
                     </p>
                   </div>
+                  <TocActionButton
+                    title={`Protect buffer: ${item.product_name}`}
+                    tocStep="protect_buffer"
+                    targetMetric="throughput"
+                    linkedEntityType="buffer"
+                    linkedEntityId={item.variant_id}
+                    linkedEntityName={item.product_name}
+                  />
                   <Badge
                     className={`text-[0.65rem] shrink-0 ${
                       item.current_zone === 'red'
