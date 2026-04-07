@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   FileText,
   ArrowRight,
-  Check,
   Heart,
   DollarSign,
   Package,
@@ -244,79 +243,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section className="py-20 px-6 bg-muted/50">
-        <div className="max-w-[1100px] mx-auto">
-          <h2 className="text-[1.8rem] font-black text-center mb-3 tracking-tight">
-            Simple, transparent pricing
-          </h2>
-          <p className="text-center text-muted-foreground mb-12">
-            Start free for 14 days. No credit card required.
-          </p>
-          <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            {[
-              {
-                name: 'Starter', price: '$99',
-                desc: 'For brands getting started with TOC',
-                features: ['Up to 100 SKUs', 'T/CU rankings', 'Buffer management', 'CSV import', 'Email support'],
-                highlight: false,
-              },
-              {
-                name: 'Growth', price: '$249',
-                desc: 'For scaling brands that need deeper analysis',
-                features: ['Up to 500 SKUs', 'Everything in Starter', 'What-If simulator', 'Channel analysis', 'Capital trap detection', 'Shopify auto-sync', 'PDF reports'],
-                highlight: true,
-              },
-              {
-                name: 'Scale', price: '$599',
-                desc: 'For enterprises maximizing throughput',
-                features: ['Unlimited SKUs', 'Everything in Growth', 'Multi-store support', 'Custom constraints', 'API access', 'Dedicated support', 'Team seats (up to 10)'],
-                highlight: false,
-              },
-            ].map((plan) => (
-              <div
-                key={plan.name}
-                className={`rounded-[0.5em] p-7 relative ${
-                  plan.highlight
-                    ? 'bg-[oklch(0.92_0.026_254)] dark:bg-[oklch(0.28_0.02_254)] border-2 border-primary/40'
-                    : 'bg-card border border-border fizzy-shadow'
-                }`}
-              >
-                {plan.highlight && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[0.75rem] font-semibold px-3 py-1 fizzy-pill">
-                    Most Popular
-                  </div>
-                )}
-                <h3 className="text-[1rem] font-bold">{plan.name}</h3>
-                <div className="mt-2">
-                  <span className="text-[2.5rem] font-black tracking-tight">{plan.price}</span>
-                  <span className="text-muted-foreground text-[0.85rem]">/mo</span>
-                </div>
-                <p className="mt-1 text-[0.85rem] text-muted-foreground">{plan.desc}</p>
-                <ul className="mt-5 space-y-2">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-[0.85rem]">
-                      <Check className="w-4 h-4 text-[oklch(0.55_0.162_147)] shrink-0 mt-0.5" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/signup"
-                  className={`mt-7 block text-center py-2.5 fizzy-pill font-semibold text-[0.85rem] transition-[filter] duration-100 ${
-                    plan.highlight
-                      ? 'bg-primary text-primary-foreground hover:brightness-90'
-                      : 'border border-border text-foreground hover:bg-accent'
-                  }`}
-                >
-                  Start Free Trial
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="border-t border-border bg-foreground text-background/60 py-14 px-6">
         <div className="max-w-[1100px] mx-auto grid sm:grid-cols-2 md:grid-cols-4 gap-8">
@@ -357,8 +283,8 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="max-w-[1100px] mx-auto mt-10 pt-6 border-t border-background/10 flex flex-col sm:flex-row items-center justify-between text-[0.75rem]">
-          <span>&copy; {new Date().getFullYear()} Systematrix. All rights reserved.</span>
-          <span className="mt-2 sm:mt-0">Built by Systematrix</span>
+          <span>&copy; {new Date().getFullYear()} Sapta. All rights reserved.</span>
+          <span className="mt-2 sm:mt-0">Built by Sapta</span>
         </div>
       </footer>
     </div>
