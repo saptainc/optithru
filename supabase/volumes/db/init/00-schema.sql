@@ -13,6 +13,13 @@ CREATE ROLE authenticator NOINHERIT LOGIN PASSWORD 'optithru-super-secret-postgr
 CREATE ROLE supabase_auth_admin NOINHERIT CREATEROLE LOGIN PASSWORD 'optithru-super-secret-postgres-password-2025';
 CREATE ROLE supabase_storage_admin NOINHERIT CREATEROLE LOGIN PASSWORD 'optithru-super-secret-postgres-password-2025';
 
+-- CRITICAL: GoTrue uses pop ORM which reads `schema_migrations` unqualified.
+-- Without this search_path, it resolves to public.schema_migrations (which is
+-- empty on a fresh deploy) and GoTrue re-runs all migrations from scratch
+-- against the pre-populated auth schema, failing on type/column mismatches.
+ALTER ROLE supabase_auth_admin SET search_path = 'auth, public';
+ALTER ROLE supabase_storage_admin SET search_path = 'storage, public';
+
 -- Role grants
 GRANT anon TO authenticator;
 GRANT authenticated TO authenticator;
