@@ -17,8 +17,11 @@ CREATE ROLE supabase_storage_admin NOINHERIT CREATEROLE LOGIN PASSWORD 'optithru
 -- Without this search_path, it resolves to public.schema_migrations (which is
 -- empty on a fresh deploy) and GoTrue re-runs all migrations from scratch
 -- against the pre-populated auth schema, failing on type/column mismatches.
-ALTER ROLE supabase_auth_admin SET search_path = 'auth, public';
-ALTER ROLE supabase_storage_admin SET search_path = 'storage, public';
+--
+-- NOTE: use `TO auth, public` (no quotes) — `= 'auth, public'` (with quotes)
+-- stores it as a single identifier "auth, public" that doesn't resolve.
+ALTER ROLE supabase_auth_admin SET search_path TO auth, public;
+ALTER ROLE supabase_storage_admin SET search_path TO storage, public;
 
 -- Role grants
 GRANT anon TO authenticator;
