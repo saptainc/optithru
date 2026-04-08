@@ -28,15 +28,14 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS pgjwt SCHEMA public;
 
 -- Required schemas
-CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin;
+-- NOTE: the `auth` schema is created by 01-auth-baseline.sql (which also drops
+-- and recreates it from a known-good baseline). Do NOT create it here, or the
+-- pg_dump in 01-auth-baseline.sql will conflict on `CREATE SCHEMA auth`.
 CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;
 
 -- Permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT CREATE ON SCHEMA public TO supabase_auth_admin;
-GRANT ALL ON SCHEMA auth TO supabase_auth_admin;
-GRANT ALL ON SCHEMA auth TO service_role;
-GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
